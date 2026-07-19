@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 import requests
 
 
@@ -27,3 +28,26 @@ def get_current_datetime():
         "weekday": now.strftime("%A"),         # Saturday
         "year": now.year                       # 2026
     }
+
+def save_catalog(content, file_type, store, info):
+    folder = Path("data")
+    folder.mkdir(exist_ok=True)
+
+    if file_type == "image":
+        store_folder = (folder / f"{store}_{info['year']}_w{info['week']:02d}")
+        store_folder.mkdir(exist_ok=True)
+
+        for i, img in enumerate(content):
+            img_data = requests.get(img).content
+            
+            with open(store_folder / f"{i}.jpg", "wb") as f:
+                f.write(img_data)
+
+
+
+    elif file_type == "pdf":
+        filename = (folder / f"{store}_{info['year']}_w{info['week']:02d}.pdf")
+        pdf_bytes = requests.get(content).content
+
+        with open(filename, "wb") as f:
+            f.write(pdf_bytes)

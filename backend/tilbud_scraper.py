@@ -4,7 +4,8 @@ import mimetypes
 from pathlib import Path
 from typing import Optional
 
-from utils import get_current_datetime
+from pathlib import Path
+from db.models import (create_catalog, save_products)
 
 from google import genai
 from google.genai import types
@@ -122,7 +123,6 @@ def _load_image_bytes(image_path: str) -> tuple[bytes, str]:
 
 
 def extract_products_from_image(image_path: str, api_key: Optional[str] = None, model: str = "gemini-3.1-flash-lite", store: Optional[str] = None) -> list[dict]:
-
     key = api_key or os.environ.get("GEMINI_API_KEY")
     if not key:
         raise ValueError(
@@ -164,32 +164,18 @@ def extract_products_from_image(image_path: str, api_key: Optional[str] = None, 
     return products
 
 
-def images_to_json(image_paths: list[str], output_path: str = "tilbud.json", api_key: Optional[str] = None, model: str = "gemini-3.1-flash-lite", store: Optional[str] = None, append: bool = False) -> list[dict]:
-    all_products = []
-
-    if append and Path(output_path).exists():
-        with open(output_path, "r", encoding="utf-8") as f:
-            all_products = json.load(f)
+def images_to_products(image_paths, api_key=None, model="gemini-3.1-flash-lite", store=None):
+    all_products=[]
 
     for image_path in image_paths:
-        print(f"Leser {image_path} ...")
-        try:
-            products = extract_products_from_image(
-                image_path, api_key=api_key, model=model, store=store
-            )
-            print(f"  -> fant {len(products)} produkter")
-            all_products.extend(products)
-        except Exception as e:
-            print(f"  FEIL ved lesing av {image_path}: {e}")
+        print(f"Leser {image_path}")
+        products = extract_products_from_image(image_path, api_key, model, store)
+        all_products.extend(products)
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(all_products, f, ensure_ascii=False, indent=2)
-
-    print(f"\nLagret {len(all_products)} produkter totalt til {output_path}")
     return all_products
 
 
-def pdf_to_json(pdf_path: str, output_path: str = "tilbud.json", api_key: Optional[str] = None, model: str = "gemini-3.1-flash-lite", dpi: int = 200, store: Optional[str] = None, append: bool = False) -> list[dict]:
+def pdf_to_json(pdf_path: str, api_key: Optional[str] = None, model: str = "gemini-3.1-flash-lite", dpi: int = 200, store: Optional[str] = None, append: bool = False) -> list[dict]:
     import fitz  # PyMuPDF
     import tempfile
 
@@ -207,65 +193,60 @@ def pdf_to_json(pdf_path: str, output_path: str = "tilbud.json", api_key: Option
 
         doc.close()
 
-        result = images_to_json(
+        result = images_to_products(
             image_paths,
-            output_path=output_path,
             api_key=api_key,
             model=model,
-            store=store,
-            append=append,
+            store=store
         )
 
     return result
 
 
-def process_catalog(data_dir: str = "data", output_path: str = "tilbud.json", api_key: Optional[str] = None, model: str = "gemini-3.1-flash-lite", info: dict[str] = get_current_datetime()) -> list[dict]:
+
+
+def process_catalog(data_dir="data", info=None):
     base = Path(data_dir)
     all_products = []
 
-    # --- REMA: mappe med bilder ---
-    rema_dir = base / f"rema_{info['year']}_w{info['week']:02d}"
-    if rema_dir.exists():
-        rema_images = sorted(
-            [str(p) for p in rema_dir.iterdir() if p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")]
-        )
-        if rema_images:
-            print(f"--- REMA: {len(rema_images)} bilder ---")
-            products = images_to_json(
-                rema_images, output_path=output_path, api_key=api_key, model=model,
-                store="rema", append=False,
-            )
-            all_products.extend(products)
-    else:
-        print(f"Ingen REMA-mappe funnet: {rema_dir}")
+    type_map = {
+        "rema": "image",
+        "kiwi": "pdf",
+        "coopExtra": "pdf",
+    }
 
-    # --- KIWI: én PDF ---
-    kiwi_pdf = base / f"kiwi_{info['year']}_w{info['week']:02d}.pdf"
-    if kiwi_pdf.exists():
-        print(f"--- Kiwi: {kiwi_pdf} ---")
-        products = pdf_to_json(
-            str(kiwi_pdf), output_path=output_path, api_key=api_key, model=model,
-            store="kiwi", append=True,
-        )
-        all_products = products  # append=True already merged inside the file
-    else:
-        print(f"Ingen Kiwi-PDF funnet: {kiwi_pdf}")
+    for store, file_type in type_map.items():
+        if file_type == "image":
+            catalog_folder = (base / f"{store}_{info['year']}_w{info['week']:02d}")
 
-    # --- COOP EXTRA: én PDF ---
-    coop_pdf = base / f"coopExtra_{info['year']}_w{info['week']:02d}.pdf"
-    if coop_pdf.exists():
-        print(f"--- Coop Extra: {coop_pdf} ---")
-        products = pdf_to_json(
-            str(coop_pdf), output_path=output_path, api_key=api_key, model=model,
-            store="coopExtra", append=True,
-        )
-        all_products = products
-    else:
-        print(f"Ingen Coop-Extra-PDF funnet: {coop_pdf}")
+            if not catalog_folder.exists():
+                continue
 
-    print(f"\nFerdig! Totalt {len(all_products)} produkter fra alle kjeder lagret i {output_path}")
+            images = list(catalog_folder.glob("*.jpg"))
+
+            if not images:
+                continue
+
+            products = images_to_products(images, store=store)
+
+        elif file_type == "pdf":
+            pdf_path = (base / f"{store}_{info['year']}_w{info['week']:02d}.pdf")
+
+            if not pdf_path.exists():
+                continue
+
+            products = pdf_to_json(str(pdf_path), store=store)
+
+        else:
+            continue
+
+        catalog_id = create_catalog(store, info)
+        save_products(products, catalog_id)
+        all_products.extend(products)
+
+    print(f"Lagret {len(all_products)} produkter i SQLite")
+
     return all_products
 
-
 if __name__ == "__main__":
-    process_catalog(data_dir="data", output_path="tilbud.json")
+    process_catalog(data_dir="data")
