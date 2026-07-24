@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 from tilbud_scraper import process_catalog
 from utils import (get_pos, get_current_datetime, save_catalog)
 from stores import get_url
-from db import init_db
+from db import init_db, KNOWN_STORES
+from db.database import get_connection
 
 load_dotenv()
 
@@ -28,23 +29,24 @@ class TilbudsRadaren:
 
             content = get_url(store,postalcode,self.pos)
 
-            type_map={
-                "rema":"image",
-                "kiwi":"pdf",
-                "coopExtra":"pdf"
-            }
-
-            save_catalog(content, type_map[store], store, self.info)
+            save_catalog(content, KNOWN_STORES[store], store, self.info)
 
 def main():
     info = get_current_datetime()
 
-    stores=[
-        "kiwi",
-        "coopExtra"
+    # Hent kun aktiverte butikker fra databasen
+    conn = get_connection()
+    enabled_stores = [
+        row["store"] for row in
+        conn.execute("SELECT store FROM store_toggles WHERE enabled = 1")
     ]
+    conn.close()
 
-    TilbudsRadaren(stores, "1654", info)
+    TilbudsRadaren(
+        enabled_stores,
+        "1654",
+        info
+    )
 
     process_catalog(info=info)
 

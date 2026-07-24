@@ -43,4 +43,4 @@ def get_rema_url():
     response.raise_for_status()
 
     data = response.json()
-    return [{"view": image["view"]} for image in data]
+    return [image["view"] for image in data]
