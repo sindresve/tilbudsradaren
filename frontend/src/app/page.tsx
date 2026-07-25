@@ -32,7 +32,16 @@ function discountPercent(current: number | null, old: number | null): number | n
   return Math.round(100 - (current / old) * 100);
 }
 
-type SortOption = "none" | "price-asc" | "price-desc";
+type SortOption =
+  | "none"
+  | "price-asc"
+  | "price-desc"
+  | "discount-desc"
+  | "discount-asc"
+  | "name-asc"
+  | "name-desc"
+  | "store-asc"
+  | "category-asc";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -46,7 +55,7 @@ export default function Home() {
   const [maxPrice, setMaxPrice] = useState<string>("");
 
   // Top bar filters
-  const [onSaleOnly, setOnSaleOnly] = useState(false);
+  const [onSaleOnly, setOnSaleOnly] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>("none");
   const [search, setSearch] = useState("");
 
@@ -118,6 +127,68 @@ export default function Home() {
   const min = minPrice.trim() === "" ? null : Number(minPrice);
   const max = maxPrice.trim() === "" ? null : Number(maxPrice);
 
+  const productsBeforeStoreFilter = products
+    .filter((p) => {
+      if (categories.length === 0 || selectedCategories.size === 0) return true;
+      return p.category !== null && selectedCategories.has(p.category);
+    })
+    .filter((p) => {
+      if (!onSaleOnly) return true;
+      const pct = effectiveDiscount(p);
+      return pct !== null && pct > 0;
+    })
+    .filter((p) => {
+      if (min !== null && (p.current_price === null || p.current_price < min)) return false;
+      if (max !== null && (p.current_price === null || p.current_price > max)) return false;
+      return true;
+    })
+    .filter((p) => {
+      if (!search.trim()) return true;
+      const q = search.trim().toLowerCase();
+      return (
+        p.product_name.toLowerCase().includes(q) ||
+        (p.brand ?? "").toLowerCase().includes(q)
+      );
+    });
+
+  const storeCounts = new Map<string, number>();
+
+  const productsBeforeCategoryFilter = products
+    .filter((p) => selectedStores.size === 0 || selectedStores.has(p.store))
+    .filter((p) => {
+      if (!onSaleOnly) return true;
+      const pct = effectiveDiscount(p);
+      return pct !== null && pct > 0;
+    })
+    .filter((p) => {
+      if (min !== null && (p.current_price === null || p.current_price < min)) return false;
+      if (max !== null && (p.current_price === null || p.current_price > max)) return false;
+      return true;
+    })
+    .filter((p) => {
+      if (!search.trim()) return true;
+      const q = search.trim().toLowerCase();
+      return (
+        p.product_name.toLowerCase().includes(q) ||
+        (p.brand ?? "").toLowerCase().includes(q)
+      );
+    });
+
+  const categoryCounts = new Map<string, number>();
+
+  productsBeforeCategoryFilter.forEach((p) => {
+    if (!p.category) return;
+
+    categoryCounts.set(
+      p.category,
+      (categoryCounts.get(p.category) ?? 0) + 1
+    );
+  });
+
+  productsBeforeStoreFilter.forEach((p) => {
+    storeCounts.set(p.store, (storeCounts.get(p.store) ?? 0) + 1);
+  });
+
   const visibleProducts = products
     .filter((p) => selectedStores.size === 0 || selectedStores.has(p.store))
     .filter((p) => {
@@ -144,13 +215,34 @@ export default function Home() {
       );
     })
     .sort((a, b) => {
-      if (sortOption === "price-asc") {
-        return (a.current_price ?? Infinity) - (b.current_price ?? Infinity);
+      switch (sortOption) {
+        case "price-asc":
+          return (a.current_price ?? Infinity) - (b.current_price ?? Infinity);
+
+        case "price-desc":
+          return (b.current_price ?? -Infinity) - (a.current_price ?? -Infinity);
+
+        case "discount-desc":
+          return (effectiveDiscount(b) ?? -1) - (effectiveDiscount(a) ?? -1);
+
+        case "discount-asc":
+          return (effectiveDiscount(a) ?? 999) - (effectiveDiscount(b) ?? 999);
+
+        case "name-asc":
+          return a.product_name.localeCompare(b.product_name, "nb");
+
+        case "name-desc":
+          return b.product_name.localeCompare(a.product_name, "nb");
+
+        case "store-asc":
+          return storeLabel(a.store).localeCompare(storeLabel(b.store), "nb");
+
+        case "category-asc":
+          return (a.category ?? "").localeCompare(b.category ?? "", "nb");
+
+        default:
+          return 0;
       }
-      if (sortOption === "price-desc") {
-        return (b.current_price ?? -Infinity) - (a.current_price ?? -Infinity);
-      }
-      return 0;
     });
 
     const handleOpen = () => {
@@ -189,7 +281,7 @@ export default function Home() {
                       onChange={() => toggleStore(s.store)}
                       className="h-4 w-4 rounded border-[#1c1a16]/30 accent-[#8a5a3d]"
                     />
-                    {storeLabel(s.store)}
+                    {storeLabel(s.store)} ({storeCounts.get(s.store) ?? 0})
                   </label>
                 ))}
                 {stores.length === 0 && (
@@ -210,7 +302,7 @@ export default function Home() {
                       onChange={() => toggleCategory(c)}
                       className="h-4 w-4 rounded border-[#1c1a16]/30 accent-[#8a5a3d]"
                     />
-                    {c}
+                    {c} ({categoryCounts.get(c) ?? 0})
                   </label>
                 ))}
                 {categories.length === 0 && (
@@ -264,7 +356,7 @@ export default function Home() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Søk etter produkt eller merke …"
-                className="min-w-[200px] flex-1 rounded-lg border border-[#1c1a16]/15 bg-white px-3 py-2 text-sm placeholder:text-[#1c1a16]/35 focus:border-[#1c1a16]/40 focus:outline-none"
+                className="min-w-50 flex-1 rounded-lg border border-[#1c1a16]/15 bg-white px-3 py-2 text-sm placeholder:text-[#1c1a16]/35 focus:border-[#1c1a16]/40 focus:outline-none"
               />
 
               <button
@@ -283,11 +375,22 @@ export default function Home() {
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
                 className="shrink-0 rounded-full border border-[#1c1a16]/20 bg-white px-4 py-2 text-sm font-medium text-[#1c1a16]/70 focus:border-[#1c1a16]/40 focus:outline-none"
               >
-                <option value="none">Sortering</option>
-                <option value="price-asc">Pris: lav til høy</option>
-                <option value="price-desc">Pris: høy til lav</option>
+                <option value="none">Standard</option>
+                <option value="price-asc">Pris: lav → høy</option>
+                <option value="price-desc">Pris: høy → lav</option>
+                <option value="discount-desc">Størst rabatt</option>
+                <option value="discount-asc">Minst rabatt</option>
+                <option value="name-asc">Navn: A → Å</option>
+                <option value="name-desc">Navn: Å → A</option>
+                <option value="store-asc">Butikk: A → Å</option>
+                <option value="category-asc">Kategori: A → Å</option>
               </select>
             </div>
+
+            <p className="mb-4 text-sm text-[#1c1a16]/50">
+              Viser <span className="font-semibold">{visibleProducts.length}</span> av{" "}
+              <span className="font-semibold">{products.length}</span> produkter
+            </p>
 
             {/* States */}
             {loading && (

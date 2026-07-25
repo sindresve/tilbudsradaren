@@ -4,10 +4,6 @@ import { Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const LINKS = [
-  { href: "/", label: "Tilbud" },
-  { href: "/chat", label: "AI-assistent" },
-];
 
 interface NavBarProps {
   setModalOpen: () => void;
@@ -25,22 +21,6 @@ export default function Navbar({ setModalOpen }: NavBarProps) {
         </Link>
 
         <div className="flex gap-1">
-          {LINKS.map((link) => {
-            const active = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-[#1c1a16] text-[#f6f3ec]"
-                    : "text-[#1c1a16]/60 hover:bg-[#1c1a16]/5 hover:text-[#1c1a16]"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
           <button onClick={() => setModalOpen()}>
             <Settings color="#000000" size={18} strokeWidth={1.25} className="cursor-pointer" />
           </button>
