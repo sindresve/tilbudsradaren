@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from db.database import get_connection
 
-app = FastAPI(title="TilbudsRadaren API")
+app = FastAPI(title="Discount Catalog API")
 
+# Allow your frontend (adjust origins for production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -62,10 +63,10 @@ def get_products(
             products.category,
             products.current_price,
             products.old_price,
+            products.discount_percent,
             products.price_per_kg,
             products.unit_type,
             products.package_size,
-            products.source_image,
             catalogs.store,
             catalogs.year,
             catalogs.week,

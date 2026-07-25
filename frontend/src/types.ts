@@ -5,6 +5,7 @@ export interface Product {
   category: string | null;
   current_price: number | null;
   old_price: number | null;
+  discount_percent: number | null;
   price_per_kg: number | null;
   unit_type: string | null;
   package_size: string | null;

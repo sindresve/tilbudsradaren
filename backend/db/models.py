@@ -40,10 +40,10 @@ def save_products(products, catalog_id):
             category,
             current_price,
             old_price,
+            discount_percent,
             price_per_kg,
             unit_type,
-            package_size,
-            source_image
+            package_size
         )
 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -55,14 +55,25 @@ def save_products(products, catalog_id):
             product.get("category"),
             product.get("current_price"),
             product.get("old_price"),
+            product.get("discount_percent"),
             product.get("price_per_kg"),
             product.get("unit_type"),
-            product.get("package_size"),
-            product.get("source_image")
+            product.get("package_size")
         ))
 
+        product_id = cursor.lastrowid
 
+        for term in product.get("search_terms", []):
+            cursor.execute("""
+            INSERT INTO product_search_terms(
+                product_id,
+                term
+            )
+            VALUES (?, ?)
+            """, (
+                product_id,
+                term.lower().strip()
+            ))
 
     conn.commit()
-
     conn.close()

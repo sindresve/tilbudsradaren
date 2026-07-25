@@ -1,4 +1,6 @@
 import os
+import shutil
+from pathlib import Path
 from dotenv import load_dotenv
 
 from tilbud_scraper import process_catalog
@@ -10,6 +12,7 @@ from db.database import get_connection
 load_dotenv()
 
 gemini_api_key = os.getenv("GEMINI_API_KEY")
+
 
 class TilbudsRadaren:
     def __init__(self, stores, postalcode, info):
@@ -31,7 +34,24 @@ class TilbudsRadaren:
 
             save_catalog(content, KNOWN_STORES[store], store, self.info)
 
+
+def cleanup_data_dir(data_dir="data"):
+    """Sletter alle nedlastede tilbudsaviser (bilder/PDF-er) etter at de er lagret i databasen."""
+    base = Path(data_dir)
+    if not base.exists():
+        return
+
+    for item in base.iterdir():
+        if item.is_dir():
+            shutil.rmtree(item, ignore_errors=True)
+        else:
+            item.unlink(missing_ok=True)
+
+    print(f"Ryddet opp i {data_dir}/")
+
+
 def main():
+    init_db()
     info = get_current_datetime()
 
     # Hent kun aktiverte butikker fra databasen
@@ -49,6 +69,9 @@ def main():
     )
 
     process_catalog(info=info)
+
+    cleanup_data_dir()
+
 
 if __name__=="__main__":
     main()

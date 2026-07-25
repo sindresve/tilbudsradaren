@@ -34,11 +34,15 @@ PRODUCT_SCHEMA = {
                     },
                     "current_price": {
                         "type": "number",
-                        "description": "Nåværende/tilbudspris i kr, f.eks. 19.90"
+                        "description": "Nåværende/tilbudspris i kr, f.eks. 19.90. Null hvis kun en generell rabatt (f.eks. '20% på alt') er oppgitt uten konkret kronepris."
                     },
                     "old_price": {
                         "type": "number",
                         "description": "Opprinnelig pris før tilbud (f.eks. 'FØR 74,90' -> 74.90). Null hvis ikke oppgitt."
+                    },
+                    "discount_percent": {
+                        "type": "number",
+                        "description": "Prosent rabatt NÅR det kun er oppgitt en generell rabatt uten konkret kronepris, f.eks. '20% på alt i denne kategorien' eller '-30%' uten current_price. Null hvis en faktisk kronepris (current_price) er oppgitt i stedet."
                     },
                     "price_per_kg": {
                         "type": "number",
@@ -51,9 +55,16 @@ PRODUCT_SCHEMA = {
                     "package_size": {
                         "type": "string",
                         "description": "Pakningsstørrelse, f.eks. '400 g', '330 ml', '8 stk'. Tom streng hvis ikke oppgitt."
+                    },
+                    "search_terms": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Liste med generiske søkeord brukeren sannsynligvis vil søke etter. F.eks. 'Jasminris 1 kg' -> ['ris','jasminris'], 'Helmelk 1L' -> ['melk','helmelk'], 'Hvetemel' -> ['mel','hvetemel'], 'Crispisalat' -> ['salat','crispisalat']. IKKE legg til ord som bare er delstrenger."
                     }
                 },
-                "required": ["product_name", "current_price", "category"]
+                "required": ["product_name", "category"]
             }
         }
     },
@@ -94,11 +105,65 @@ For hvert produkt, hent ut:
 - product_name: navnet på produktet (store bokstaver som i annonsen er ok)
 - brand: merkevare hvis synlig (f.eks. BAMA, REMA 1000, Barilla, Tine, Zalo, Colgate)
 - category: "mat", "drikke", "hygiene", "husholdning", eller "annet"
-- current_price: den store, fremhevede prisen (tilbudsprisen)
+- current_price: den store, fremhevede prisen (tilbudsprisen), HVIS en konkret kronepris er oppgitt
 - old_price: prisen merket "FØR" hvis den finnes (den gamle/opprinnelige prisen)
+- discount_percent: HVIS produktet kun har en generell prosentrabatt uten konkret kronepris
+  (f.eks. "20% på alt i denne seksjonen", "-30%" uten noen kronebeløp), sett current_price og
+  old_price til null og fyll inn discount_percent i stedet. Bruk ALDRI discount_percent hvis
+  current_price allerede er kjent.
 - price_per_kg: "pr. kg" eller "pr. l" eller "pr. stk" prisen som ofte står i mindre tekst
 - unit_type: enheten for price_per_kg (kg, l, stk)
 - package_size: pakningsstørrelse (f.eks. "400 g", "330 ml")
+
+- search_terms:
+  Lag 2-8 søkeord som beskriver produktet.
+
+  Regler:
+  - Bruk substantiver folk faktisk søker etter.
+  - Ikke bruk delstrenger.
+  - Ikke bruk tilfeldige ord fra produktnavnet.
+  - Ta med både generelle og spesifikke navn.
+
+  Eksempler:
+
+  "Jasminris"
+  -> ["ris","jasminris"]
+
+  "Basmatiris"
+  -> ["ris","basmatiris"]
+
+  "Hvetemel"
+  -> ["mel","hvetemel"]
+
+  "Sammalt hvetemel"
+  -> ["mel","hvetemel","sammalt"]
+
+  "Helmelk"
+  -> ["melk","helmelk"]
+
+  "Lettmelk"
+  -> ["melk","lettmelk"]
+
+  "Crispisalat"
+  -> ["salat","crispisalat"]
+
+  "Isbergsalat"
+  -> ["salat","isbergsalat"]
+
+  "Spaghetti"
+  -> ["pasta","spaghetti"]
+
+  "Penne"
+  -> ["pasta","penne"]
+
+  "Potetgull"
+  -> ["chips","potetgull"]
+
+  "Toalettpapir"
+  -> ["toalettpapir","dopapir"]
+
+  "Oppvaskmiddel"
+  -> ["oppvaskmiddel"]
 
 Vær nøyaktig med tall - se godt etter komma/desimaler (norsk format bruker komma som desimaltegn,
 konverter til punktum i JSON, f.eks. "19,90" -> 19.90).

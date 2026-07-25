@@ -33,7 +33,8 @@ def init_db():
         price_per_kg REAL,
         unit_type TEXT,
         package_size TEXT,
-        source_image TEXT,
+        discount_percent REAL,
+
 
         FOREIGN KEY(catalog_id)
             REFERENCES catalogs(id)
@@ -120,6 +121,23 @@ def init_db():
             REFERENCES recipes(id)
             ON DELETE CASCADE
     )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS product_search_terms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        term TEXT NOT NULL,
+
+        FOREIGN KEY(product_id)
+            REFERENCES products(id)
+            ON DELETE CASCADE
+    )
+    """)
+
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_product_search_term
+    ON product_search_terms(term)
     """)
 
 
