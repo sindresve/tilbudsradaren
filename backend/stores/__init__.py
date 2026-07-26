@@ -21,5 +21,7 @@ def get_url(store, postalcode, pos):
         return get_kiwi_url(postalcode)
     elif store == "rema":
         return get_rema_url()
+    elif store == "meny":
+        return "https://kundeavis.meny.no/GetPDF.ashx"
     else:
         raise ValueError(f"Ukjent butikk: {store}")

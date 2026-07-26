@@ -56,10 +56,7 @@ def main():
 
     # Hent kun aktiverte butikker fra databasen
     conn = get_connection()
-    enabled_stores = [
-        row["store"] for row in
-        conn.execute("SELECT store FROM store_toggles WHERE enabled = 1")
-    ]
+    enabled_stores = ["meny"]
     conn.close()
 
     TilbudsRadaren(

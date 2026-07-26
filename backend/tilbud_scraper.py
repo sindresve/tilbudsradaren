@@ -6,6 +6,7 @@ from typing import Optional
 
 from pathlib import Path
 from db.models import (create_catalog, save_products)
+from db import KNOWN_STORES
 
 from google import genai
 from google.genai import types
@@ -274,13 +275,7 @@ def process_catalog(data_dir="data", info=None):
     base = Path(data_dir)
     all_products = []
 
-    type_map = {
-        "rema": "image",
-        "kiwi": "pdf",
-        "coopExtra": "pdf",
-    }
-
-    for store, file_type in type_map.items():
+    for store, file_type in KNOWN_STORES.items():
         if file_type == "image":
             catalog_folder = (base / f"{store}_{info['year']}_w{info['week']:02d}")
 

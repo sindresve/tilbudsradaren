@@ -4,6 +4,7 @@ KNOWN_STORES = {
     "rema": "image",
     "kiwi": "pdf",
     "coopExtra": "pdf",
+    "meny": "pdf",
 }
 
 def init_db():
