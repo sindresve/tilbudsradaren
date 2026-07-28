@@ -38,7 +38,7 @@ cd backend
 python -m venv venv # Du kan velge om du vil opprette et virtuelt miljø eller ikke (anbefalt)
 venv\Scripts\activate.bat
 pip install -r requirements.txt
-python -m uvicorn api.server:app --reload --port 8000
+python -m uvicorn api.main:app --reload --port 8000
 ```
 
 ### 3. Frontend setup
