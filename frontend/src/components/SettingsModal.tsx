@@ -1,14 +1,13 @@
 'use client';
 
-import { Bell, Plug, Plus, ShoppingBasket, SlidersHorizontal, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Bell, Plug, Plus, ShoppingBasket, SlidersHorizontal, Trash2, X, Circle, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
 
 function ScrollbarStyles() {
   return (
@@ -30,6 +29,13 @@ function ScrollbarStyles() {
       .settings-scroll {
         scrollbar-width: thin;
         scrollbar-color: #3a332e transparent;
+      }
+      @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.85); }
+      }
+      .unsaved-dot {
+        animation: pulse-dot 1.6s ease-in-out infinite;
       }
     `}</style>
   );
@@ -224,20 +230,31 @@ function TextField({
   placeholder,
   value,
   onChange,
-  type = 'text',
+  inputMode = "text",
+  pattern,
+  type = "text",
+  maxLength,
 }: {
   label: string;
   placeholder?: string;
   value: string;
   onChange: (v: string) => void;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
   type?: string;
+  maxLength?: number;
 }) {
   return (
     <div className="py-3.5 border-b-[0.5px] border-[#F2EEE7]/10 last:border-b-0">
-      <label className="text-sm font-medium text-[#F2EEE7] block mb-2">{label}</label>
+      <label className="text-sm font-medium text-[#F2EEE7] block mb-2">
+        {label}
+      </label>
       <input
         type={type}
+        inputMode={inputMode}
         value={value}
+        pattern={pattern}
+        maxLength={maxLength}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="w-full bg-[#1A1613] border border-[#3A332E] rounded-lg px-3 py-2 text-sm text-[#F2EEE7] placeholder:text-[#6B655D] outline-none focus:border-[#8A5A44] transition-colors duration-150"
@@ -246,11 +263,21 @@ function TextField({
   );
 }
 
+// Small reusable "unsaved changes" pill shown next to a save button
+function UnsavedHint() {
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-[#E0A458]">
+      <Circle size={7} className="fill-[#E0A458] text-[#E0A458] unsaved-dot" />
+      Ulagrede endringer
+    </span>
+  );
+}
+
 export default function Modal({ isOpen, onClose }: ModalProps) {
   const [activeTab, setActiveTab] = useState<string>('Varslinger');
 
-  // Varslinger state — hvert varsel har på/av + hvilke kanaler det sendes på
-  const [notifications, setNotifications] = useState<{
+  // ---------------- NOTIFICATIONS STATE ----------------
+  type NotificationsState = {
     priceDrops: { enabled: boolean; channels: Channel[] };
     newOffers: { enabled: boolean; channels: Channel[] };
     weeklyDigest: { enabled: boolean; channels: Channel[] };
@@ -259,7 +286,9 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     dashboardNewOffers: { enabled: boolean; channels: Channel[] };
     bestDealsWeekly: { enabled: boolean; channels: Channel[] };
     favoriteFoodAlerts: { enabled: boolean; channels: Channel[] };
-  }>({
+  };
+
+  const initialNotifications: NotificationsState = {
     priceDrops: { enabled: true, channels: ['email'] },
     newOffers: { enabled: true, channels: ['discord', 'email'] },
     weeklyDigest: { enabled: false, channels: [] },
@@ -268,10 +297,13 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     dashboardNewOffers: { enabled: true, channels: [] },
     bestDealsWeekly: { enabled: true, channels: ['discord'] },
     favoriteFoodAlerts: { enabled: true, channels: ['email'] },
-  });
+  };
+
+  const [notifications, setNotifications] = useState<NotificationsState>(initialNotifications);
+  const [savedNotifications, setSavedNotifications] = useState<NotificationsState>(initialNotifications);
 
   const updateNotification = (
-    key: keyof typeof notifications,
+    key: keyof NotificationsState,
     patch: Partial<{ enabled: boolean; channels: Channel[] }>
   ) => {
     setNotifications((prev) => ({
@@ -280,29 +312,32 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     }));
   };
 
-  // Preferanser state
-  const [stores, setStores] = useState({
-    rema: true,
-    kiwi: true,
-    coop: true,
-    extra: false,
-    meny: false,
-  });
-  const [allergies, setAllergies] = useState({
+  // ---------------- PREFERENCES STATE ----------------
+  type StoresState = { rema: boolean; kiwi: boolean; coopExtra: boolean; meny: boolean };
+  type AllergiesState = { gluten: boolean; laktose: boolean; nøtter: boolean; egg: boolean; skalldyr: boolean };
+
+  const initialStores: StoresState = { rema: true, kiwi: true, coopExtra: true, meny: false };
+  const initialAllergies: AllergiesState = {
     gluten: false,
     laktose: false,
     nøtter: false,
     egg: false,
     skalldyr: false,
-  });
-  const [onlyOffers, setOnlyOffers] = useState(true);
-  const [showOutOfStock, setShowOutOfStock] = useState(false);
+  };
 
-  // Handleliste state
-  const [dryGoods, setDryGoods] = useState<string[]>(['Ris', 'Mel', 'Sukker', 'Havregryn']);
-  const [favoriteFoods, setFavoriteFoods] = useState<string[]>(['Kylling', 'Kjøttdeig']);
-  const [budgetAmount, setBudgetAmount] = useState('');
-  const [budgetPeriod, setBudgetPeriod] = useState<'uke' | 'måned'>('uke');
+  const [stores, setStores] = useState<StoresState>(initialStores);
+  const [savedStores, setSavedStores] = useState<StoresState>(initialStores);
+  const [allergies, setAllergies] = useState<AllergiesState>(initialAllergies);
+  const [savedAllergies, setSavedAllergies] = useState<AllergiesState>(initialAllergies);
+
+  // ---------------- SHOPPING LIST STATE ----------------
+  const initialDryGoods = ['Ris', 'Mel', 'Sukker', 'Havregryn'];
+  const initialFavoriteFoods = ['Kylling', 'Kjøttdeig'];
+
+  const [dryGoods, setDryGoods] = useState<string[]>(initialDryGoods);
+  const [savedDryGoods, setSavedDryGoods] = useState<string[]>(initialDryGoods);
+  const [favoriteFoods, setFavoriteFoods] = useState<string[]>(initialFavoriteFoods);
+  const [savedFavoriteFoods, setSavedFavoriteFoods] = useState<string[]>(initialFavoriteFoods);
 
   const addDryGood = (name: string) => {
     if (dryGoods.some((g) => g.toLowerCase() === name.toLowerCase())) return;
@@ -320,29 +355,263 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     setFavoriteFoods((prev) => prev.filter((f) => f !== name));
   };
 
-  // Konfigurasjon state
+  // ---------------- CONFIGURATION STATE ----------------
   const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [savedGeminiApiKey, setSavedGeminiApiKey] = useState('');
   const [webhookUrl, setWebhookUrl] = useState('');
+  const [savedWebhookUrl, setSavedWebhookUrl] = useState('');
   const [smtpHost, setSmtpHost] = useState('');
+  const [savedSmtpHost, setSavedSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState('');
+  const [savedSmtpPort, setSavedSmtpPort] = useState('');
   const [smtpUser, setSmtpUser] = useState('');
+  const [savedSmtpUser, setSavedSmtpUser] = useState('');
   const [smtpPass, setSmtpPass] = useState('');
+  const [savedSmtpPass, setSavedSmtpPass] = useState('');
   const [webhookEnabled, setWebhookEnabled] = useState(false);
+  const [savedWebhookEnabled, setSavedWebhookEnabled] = useState(false);
   const [smtpEnabled, setSmtpEnabled] = useState(false);
+  const [savedSmtpEnabled, setSavedSmtpEnabled] = useState(false);
+  const [postalCode, setPostalCode] = useState('');
+  const [savedPostalCode, setSavedPostalCode] = useState('');
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [savedBudgetAmount, setSavedBudgetAmount] = useState('');
+  const [budgetPeriod, setBudgetPeriod] = useState<'uke' | 'måned'>('uke');
+  const [savedBudgetPeriod, setSavedBudgetPeriod] = useState<'uke' | 'måned'>('uke');
+
+  // ---------------- DIRTY CHECKS ----------------
+  const notificationsDirty = useMemo(
+    () => JSON.stringify(notifications) !== JSON.stringify(savedNotifications),
+    [notifications, savedNotifications]
+  );
+
+  const preferencesDirty = useMemo(
+    () =>
+      JSON.stringify(stores) !== JSON.stringify(savedStores) ||
+      JSON.stringify(allergies) !== JSON.stringify(savedAllergies),
+    [stores, savedStores, allergies, savedAllergies]
+  );
+
+  const shoppingListDirty = useMemo(
+    () =>
+      JSON.stringify(dryGoods) !== JSON.stringify(savedDryGoods) ||
+      JSON.stringify(favoriteFoods) !== JSON.stringify(savedFavoriteFoods),
+    [dryGoods, savedDryGoods, favoriteFoods, savedFavoriteFoods]
+  );
+
+  const configDirty = useMemo(
+    () =>
+      geminiApiKey !== savedGeminiApiKey ||
+      webhookUrl !== savedWebhookUrl ||
+      smtpHost !== savedSmtpHost ||
+      smtpPort !== savedSmtpPort ||
+      smtpUser !== savedSmtpUser ||
+      smtpPass !== savedSmtpPass ||
+      webhookEnabled !== savedWebhookEnabled ||
+      smtpEnabled !== savedSmtpEnabled ||
+      postalCode !== savedPostalCode ||
+      budgetAmount !== savedBudgetAmount ||
+      budgetPeriod !== savedBudgetPeriod,
+    [
+      geminiApiKey, savedGeminiApiKey,
+      webhookUrl, savedWebhookUrl,
+      smtpHost, savedSmtpHost,
+      smtpPort, savedSmtpPort,
+      smtpUser, savedSmtpUser,
+      smtpPass, savedSmtpPass,
+      webhookEnabled, savedWebhookEnabled,
+      smtpEnabled, savedSmtpEnabled,
+      postalCode, savedPostalCode,
+      budgetAmount, savedBudgetAmount,
+      budgetPeriod, savedBudgetPeriod,
+    ]
+  );
+
+  const anyDirty = notificationsDirty || preferencesDirty || shoppingListDirty || configDirty;
+
+  const dirtyByTab: Record<string, boolean> = {
+    Varslinger: notificationsDirty,
+    Preferanser: preferencesDirty,
+    Handleliste: shoppingListDirty,
+    Konfigurasjon: configDirty,
+  };
+
+  // ---------------- DIFF PAYLOAD BUILDER ----------------
+  // Only includes keys that actually changed since last save, grouped by
+  // section, so the backend can run targeted UPDATE queries instead of
+  // rewriting every column.
+  const buildChangedPayload = () => {
+    const payload: Record<string, unknown> = {};
+
+    // notifications: only include individual notification keys that changed
+    if (notificationsDirty) {
+      const changedNotifications: Partial<NotificationsState> = {};
+      (Object.keys(notifications) as (keyof NotificationsState)[]).forEach((key) => {
+        if (JSON.stringify(notifications[key]) !== JSON.stringify(savedNotifications[key])) {
+          changedNotifications[key] = notifications[key];
+        }
+      });
+      if (Object.keys(changedNotifications).length > 0) {
+        payload.notifications = changedNotifications;
+      }
+    }
+
+    // stores: only changed store keys
+    if (JSON.stringify(stores) !== JSON.stringify(savedStores)) {
+      const changedStores: Partial<StoresState> = {};
+      (Object.keys(stores) as (keyof StoresState)[]).forEach((key) => {
+        if (stores[key] !== savedStores[key]) changedStores[key] = stores[key];
+      });
+      if (Object.keys(changedStores).length > 0) payload.stores = changedStores;
+    }
+
+    // allergies: only changed allergy keys
+    if (JSON.stringify(allergies) !== JSON.stringify(savedAllergies)) {
+      const changedAllergies: Partial<AllergiesState> = {};
+      (Object.keys(allergies) as (keyof AllergiesState)[]).forEach((key) => {
+        if (allergies[key] !== savedAllergies[key]) changedAllergies[key] = allergies[key];
+      });
+      if (Object.keys(changedAllergies).length > 0) payload.allergies = changedAllergies;
+    }
+
+    // lists: send the whole list only if it changed (lists are replaced, not diffed field-by-field)
+    if (JSON.stringify(dryGoods) !== JSON.stringify(savedDryGoods)) {
+      payload.dryGoods = dryGoods;
+    }
+    if (JSON.stringify(favoriteFoods) !== JSON.stringify(savedFavoriteFoods)) {
+      payload.favoriteFoods = favoriteFoods;
+    }
+
+    // config: only changed individual fields
+    const configFieldMap: Array<[string, unknown, unknown]> = [
+      ['geminiApiKey', geminiApiKey, savedGeminiApiKey],
+      ['webhookUrl', webhookUrl, savedWebhookUrl],
+      ['smtpHost', smtpHost, savedSmtpHost],
+      ['smtpPort', smtpPort, savedSmtpPort],
+      ['smtpUser', smtpUser, savedSmtpUser],
+      ['smtpPass', smtpPass, savedSmtpPass],
+      ['webhookEnabled', webhookEnabled, savedWebhookEnabled],
+      ['smtpEnabled', smtpEnabled, savedSmtpEnabled],
+      ['postalCode', postalCode, savedPostalCode],
+      ['budgetAmount', budgetAmount, savedBudgetAmount],
+      ['budgetPeriod', budgetPeriod, savedBudgetPeriod],
+    ];
+    const changedConfig: Record<string, unknown> = {};
+    configFieldMap.forEach(([key, current, saved]) => {
+      if (current !== saved) changedConfig[key] = current;
+    });
+    if (Object.keys(changedConfig).length > 0) payload.config = changedConfig;
+
+    return payload;
+  };
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Single global save: sends only the diff to the backend, then syncs
+  // "saved" snapshots so dirty-state clears for exactly what was sent.
+  const saveAllChanges = async () => {
+    const payload = buildChangedPayload();
+    if (Object.keys(payload).length === 0) return;
+
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`Lagring feilet (${res.status})`);
+
+      // Sync saved snapshots only for sections that were part of the payload
+      if (payload.notifications) setSavedNotifications(notifications);
+      if (payload.stores) setSavedStores(stores);
+      if (payload.allergies) setSavedAllergies(allergies);
+      if (payload.dryGoods) setSavedDryGoods(dryGoods);
+      if (payload.favoriteFoods) setSavedFavoriteFoods(favoriteFoods);
+      if (payload.config) {
+        setSavedGeminiApiKey(geminiApiKey);
+        setSavedWebhookUrl(webhookUrl);
+        setSavedSmtpHost(smtpHost);
+        setSavedSmtpPort(smtpPort);
+        setSavedSmtpUser(smtpUser);
+        setSavedSmtpPass(smtpPass);
+        setSavedWebhookEnabled(webhookEnabled);
+        setSavedSmtpEnabled(smtpEnabled);
+        setSavedPostalCode(postalCode);
+        setSavedBudgetAmount(budgetAmount);
+        setSavedBudgetPeriod(budgetPeriod);
+      }
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Ukjent feil ved lagring');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Warn before closing the modal if there are unsaved changes anywhere
+  const handleClose = () => {
+    if (anyDirty) {
+      const confirmClose = window.confirm(
+        'Du har ulagrede endringer. Er du sikker på at du vil lukke uten å lagre?'
+      );
+      if (!confirmClose) return;
+    }
+    onClose();
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
     };
     if (isOpen) document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, anyDirty]);
+
+  // Lock background scroll while the modal is open. Applied directly to
+  // <html>/<body> here so it works regardless of how layout.tsx is set up —
+  // no changes to layout.tsx needed.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const scrollY = window.scrollY;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyPosition = document.body.style.position;
+    const originalBodyTop = document.body.style.top;
+    const originalBodyWidth = document.body.style.width;
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    // Also lock position so iOS Safari doesn't allow rubber-band scroll
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.position = originalBodyPosition;
+      document.body.style.top = originalBodyTop;
+      document.body.style.width = originalBodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
+  const tabs = [
+    { id: 'Varslinger', label: 'Varslinger', icon: Bell },
+    { id: 'Preferanser', label: 'Preferanser', icon: SlidersHorizontal },
+    { id: 'Handleliste', label: 'Handleliste', icon: ShoppingBasket },
+    { id: 'Konfigurasjon', label: 'Konfigurasjon', icon: Plug },
+  ];
+
   return createPortal(
     <div
-      onClick={onClose}
+      onClick={handleClose}
       style={{
         position: 'fixed',
         inset: 0,
@@ -359,52 +628,71 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
         className="flex flex-row max-w-7xl w-full max-h-9/12 h-full bg-[#211C19] rounded-2xl overflow-hidden text-[#F2EEE7]"
       >
         {/* Sidebar */}
-        <div className="bg-[#2A2420] max-w-72 w-full h-full py-4 px-5 shrink-0">
+        <div className="bg-[#2A2420] max-w-72 w-full h-full py-4 px-5 shrink-0 flex flex-col">
           <h1 className="font-bold">Innstillinger</h1>
-          <button
-            onClick={() => setActiveTab('Varslinger')}
-            className={`mt-6 transition-all duration-200 flex items-center gap-1.5 cursor-pointer w-full ${
-              activeTab === 'Varslinger' && 'bg-[#b1aeae]/10'
-            } hover:bg-[#b1aeae]/10 rounded-lg p-2`}
-          >
-            <Bell size={17} strokeWidth={1.5} className="cursor-pointer" />
-            Varslinger
-          </button>
-          <button
-            onClick={() => setActiveTab('Preferanser')}
-            className={`mt-3 transition-all duration-200 flex items-center gap-1.5 cursor-pointer w-full ${
-              activeTab === 'Preferanser' && 'bg-[#b1aeae]/10'
-            } hover:bg-[#b1aeae]/10 rounded-lg p-2`}
-          >
-            <SlidersHorizontal size={17} strokeWidth={1.5} className="cursor-pointer" />
-            Preferanser
-          </button>
-          <button
-            onClick={() => setActiveTab('Handleliste')}
-            className={`mt-3 transition-all duration-200 flex items-center gap-1.5 cursor-pointer w-full ${
-              activeTab === 'Handleliste' && 'bg-[#b1aeae]/10'
-            } hover:bg-[#b1aeae]/10 rounded-lg p-2`}
-          >
-            <ShoppingBasket size={17} strokeWidth={1.5} className="cursor-pointer" />
-            Handleliste
-          </button>
-          <button
-            onClick={() => setActiveTab('Konfigurasjon')}
-            className={`mt-3 transition-all duration-200 flex items-center gap-1.5 cursor-pointer w-full ${
-              activeTab === 'Konfigurasjon' && 'bg-[#b1aeae]/10'
-            } hover:bg-[#b1aeae]/10 rounded-lg p-2`}
-          >
-            <Plug size={17} strokeWidth={1.5} className="cursor-pointer" />
-            Konfigurasjon
-          </button>
+
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`mt-3 first:mt-6 transition-all duration-200 flex items-center justify-between gap-1.5 cursor-pointer w-full ${
+                activeTab === id && 'bg-[#b1aeae]/10'
+              } hover:bg-[#b1aeae]/10 rounded-lg p-2`}
+            >
+              <span className="flex items-center gap-1.5">
+                <Icon size={17} strokeWidth={1.5} className="cursor-pointer" />
+                {label}
+              </span>
+              {dirtyByTab[id] && (
+                <Circle
+                  size={7}
+                  className="fill-[#E0A458] text-[#E0A458] unsaved-dot shrink-0"
+                  aria-label="Ulagrede endringer"
+                />
+              )}
+            </button>
+          ))}
+
+          {/* Bottom-anchored global save button — sends only changed fields */}
+          <div className="mt-auto">
+            {anyDirty && (
+              <div className="flex items-center gap-1.5 text-xs text-[#E0A458] mb-2 px-0.5">
+                <Circle size={7} className="fill-[#E0A458] text-[#E0A458] unsaved-dot shrink-0" />
+                Ulagrede endringer
+              </div>
+            )}
+            <button
+              onClick={saveAllChanges}
+              disabled={!anyDirty || isSaving}
+              className={`w-full flex items-center justify-center gap-2 text-sm font-medium rounded-lg p-2 transition-colors duration-150 ${
+                anyDirty && !isSaving
+                  ? 'bg-[#8A5A44] hover:bg-[#7A4E3A] text-[#F2EEE7] cursor-pointer'
+                  : 'bg-[#3A332E] text-[#6B655D] cursor-not-allowed'
+              }`}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Lagrer...
+                </>
+              ) : 'Lagre endringer'
+              }
+            </button>
+            {saveError && (
+              <p className="text-xs text-[#C0554A] mt-2 px-0.5">{saveError}</p>
+            )}
+          </div>
         </div>
 
         {/* Content */}
         <div className="w-full h-full flex flex-col overflow-hidden">
           <div className="px-4.5 py-3.5 border-b-[0.5px] border-[#F2EEE7]/10 flex items-center justify-between shrink-0">
-            <h3 className="font-semibold">{activeTab}</h3>
+            <div className="flex items-center gap-2.5">
+              <h3 className="font-semibold">{activeTab}</h3>
+              {dirtyByTab[activeTab] && <UnsavedHint />}
+            </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}
             >
               <X size={18} strokeWidth={1.25} className="cursor-pointer" />
@@ -412,7 +700,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
           </div>
 
           <div className="settings-scroll overflow-y-auto px-6 py-4">
-            {/* ---------------- VARSLINGER ---------------- */}
+            {/* ---------------- NOTIFICATIONS ---------------- */}
             {activeTab === 'Varslinger' && (
               <div className="max-w-md">
                 <SectionLabel>Varsler</SectionLabel>
@@ -455,241 +743,252 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                     updateNotification('favoriteFoodAlerts', { channels: c })
                   }
                 />
+
               </div>
             )}
 
-            {/* ---------------- PREFERANSER ---------------- */}
+            {/* ---------------- PREFERENCES ---------------- */}
             {activeTab === 'Preferanser' && (
-              <div className="max-w-md">
-                <SectionLabel>Butikker som skannes</SectionLabel>
-                <SettingRow title="REMA 1000">
-                  <Toggle
-                    checked={stores.rema}
-                    onChange={(v) => setStores((s) => ({ ...s, rema: v }))}
-                  />
-                </SettingRow>
-                <SettingRow title="Kiwi">
-                  <Toggle
-                    checked={stores.kiwi}
-                    onChange={(v) => setStores((s) => ({ ...s, kiwi: v }))}
-                  />
-                </SettingRow>
-                <SettingRow title="Coop Extra">
-                  <Toggle
-                    checked={stores.coop}
-                    onChange={(v) => setStores((s) => ({ ...s, coop: v }))}
-                  />
-                </SettingRow>
-                <SettingRow title="Extra">
-                  <Toggle
-                    checked={stores.extra}
-                    onChange={(v) => setStores((s) => ({ ...s, extra: v }))}
-                  />
-                </SettingRow>
-                <SettingRow title="Meny">
-                  <Toggle
-                    checked={stores.meny}
-                    onChange={(v) => setStores((s) => ({ ...s, meny: v }))}
-                  />
-                </SettingRow>
-
-                <SectionLabel>Allergier og hensyn</SectionLabel>
-                <p className="text-xs text-[#9B958C] -mt-1 mb-2">
-                  Vi skjuler varer som inneholder dette der det er mulig
-                </p>
-                <SettingRow title="Gluten">
-                  <Toggle
-                    checked={allergies.gluten}
-                    onChange={(v) => setAllergies((a) => ({ ...a, gluten: v }))}
-                  />
-                </SettingRow>
-                <SettingRow title="Laktose">
-                  <Toggle
-                    checked={allergies.laktose}
-                    onChange={(v) => setAllergies((a) => ({ ...a, laktose: v }))}
-                  />
-                </SettingRow>
-                <SettingRow title="Nøtter">
-                  <Toggle
-                    checked={allergies.nøtter}
-                    onChange={(v) => setAllergies((a) => ({ ...a, nøtter: v }))}
-                  />
-                </SettingRow>
-                <SettingRow title="Egg">
-                  <Toggle
-                    checked={allergies.egg}
-                    onChange={(v) => setAllergies((a) => ({ ...a, egg: v }))}
-                  />
-                </SettingRow>
-                <SettingRow title="Skalldyr">
-                  <Toggle
-                    checked={allergies.skalldyr}
-                    onChange={(v) => setAllergies((a) => ({ ...a, skalldyr: v }))}
-                  />
-                </SettingRow>
-
-                <SectionLabel>Visning</SectionLabel>
-                <SettingRow
-                  title="Vis kun tilbud"
-                  description="Skjul varer uten aktiv rabatt som standard"
-                >
-                  <Toggle checked={onlyOffers} onChange={setOnlyOffers} />
-                </SettingRow>
-                <SettingRow
-                  title="Vis utsolgte varer"
-                  description="Inkluder varer som for øyeblikket ikke er på lager"
-                >
-                  <Toggle checked={showOutOfStock} onChange={setShowOutOfStock} />
-                </SettingRow>
-              </div>
-            )}
-
-            {/* ---------------- HANDLELISTE ---------------- */}
-            {activeTab === 'Handleliste' && (
-              <div className="max-w-md">
-                <SectionLabel>Tørrvarer du ofte kjøper</SectionLabel>
-                <p className="text-xs text-[#9B958C] -mt-1 mb-3">
-                  Legg til varer som ris, mel og sukker, så varsler vi deg når de er på tilbud
-                </p>
-                <ListInput placeholder="F.eks. Ris" onAdd={addDryGood} />
-                <div className="mt-2">
-                  {dryGoods.length === 0 ? (
-                    <EmptyListHint text="Ingen tørrvarer lagt til enda" />
-                  ) : (
-                    dryGoods.map((item) => (
-                      <ListItem key={item} label={item} onRemove={() => removeDryGood(item)} />
-                    ))
-                  )}
-                </div>
-
-                <SectionLabel>Mat du liker</SectionLabel>
-                <p className="text-xs text-[#9B958C] -mt-1 mb-3">
-                  F.eks. kylling eller kjøttdeig — brukes til favorittmat-varsler
-                </p>
-                <ListInput placeholder="F.eks. Kylling" onAdd={addFavoriteFood} />
-                <div className="mt-2">
-                  {favoriteFoods.length === 0 ? (
-                    <EmptyListHint text="Ingen favorittmat lagt til enda" />
-                  ) : (
-                    favoriteFoods.map((item) => (
-                      <ListItem
-                        key={item}
-                        label={item}
-                        onRemove={() => removeFavoriteFood(item)}
+              <div className="w-full">
+                <div className='w-full flex flex-row gap-10'>
+                  <div className="max-w-md w-full">
+                    <SectionLabel>Butikker som skannes</SectionLabel>
+                    <p className="text-xs text-[#9B958C] -mt-1 mb-2">
+                      Skru av/på butikker som er/ikke er i næromerådet ditt
+                    </p>
+                    <SettingRow title="REMA 1000">
+                      <Toggle
+                        checked={stores.rema}
+                        onChange={(v) => setStores((s) => ({ ...s, rema: v }))}
                       />
-                    ))
-                  )}
+                    </SettingRow>
+                    <SettingRow title="Kiwi">
+                      <Toggle
+                        checked={stores.kiwi}
+                        onChange={(v) => setStores((s) => ({ ...s, kiwi: v }))}
+                      />
+                    </SettingRow>
+                    <SettingRow title="Coop Extra">
+                      <Toggle
+                        checked={stores.coopExtra}
+                        onChange={(v) => setStores((s) => ({ ...s, coopExtra: v }))}
+                      />
+                    </SettingRow>
+                    <SettingRow title="Meny">
+                      <Toggle
+                        checked={stores.meny}
+                        onChange={(v) => setStores((s) => ({ ...s, meny: v }))}
+                      />
+                    </SettingRow>
+                  </div>
+                  <div className="max-w-md w-full">
+                    <SectionLabel>Allergier og hensyn</SectionLabel>
+                    <p className="text-xs text-[#9B958C] -mt-1 mb-2">
+                      AI-chat assistenten vil ikke anbefale mat som inneholder dine allergier
+                    </p>
+                    <SettingRow title="Gluten">
+                      <Toggle
+                        checked={allergies.gluten}
+                        onChange={(v) => setAllergies((a) => ({ ...a, gluten: v }))}
+                      />
+                    </SettingRow>
+                    <SettingRow title="Laktose">
+                      <Toggle
+                        checked={allergies.laktose}
+                        onChange={(v) => setAllergies((a) => ({ ...a, laktose: v }))}
+                      />
+                    </SettingRow>
+                    <SettingRow title="Nøtter">
+                      <Toggle
+                        checked={allergies.nøtter}
+                        onChange={(v) => setAllergies((a) => ({ ...a, nøtter: v }))}
+                      />
+                    </SettingRow>
+                    <SettingRow title="Egg">
+                      <Toggle
+                        checked={allergies.egg}
+                        onChange={(v) => setAllergies((a) => ({ ...a, egg: v }))}
+                      />
+                    </SettingRow>
+                    <SettingRow title="Skalldyr">
+                      <Toggle
+                        checked={allergies.skalldyr}
+                        onChange={(v) => setAllergies((a) => ({ ...a, skalldyr: v }))}
+                      />
+                    </SettingRow>
+                  </div>
                 </div>
 
-                <SectionLabel>Budsjett</SectionLabel>
-                <p className="text-xs text-[#9B958C] -mt-1 mb-3">
-                  Sett et handlebudsjett for å holde oversikt over forbruket ditt
-                </p>
-                <div className="flex items-end gap-2 py-3.5">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-[#F2EEE7] block mb-2">
-                      Beløp (kr)
-                    </label>
-                    <input
-                      type="number"
-                      value={budgetAmount}
-                      placeholder="500"
-                      onChange={(e) => setBudgetAmount(e.target.value)}
-                      className="w-full bg-[#1A1613] border border-[#3A332E] rounded-lg px-3 py-2 text-sm text-[#F2EEE7] placeholder:text-[#6B655D] outline-none focus:border-[#8A5A44] transition-colors duration-150"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-[#F2EEE7] block mb-2">
-                      Periode
-                    </label>
-                    <select
-                      value={budgetPeriod}
-                      onChange={(e) => setBudgetPeriod(e.target.value as 'uke' | 'måned')}
-                      className="w-full bg-[#1A1613] border border-[#3A332E] rounded-lg px-3 py-2 text-sm text-[#F2EEE7] outline-none focus:border-[#8A5A44] transition-colors duration-150 cursor-pointer"
-                    >
-                      <option value="uke">Per uke</option>
-                      <option value="måned">Per måned</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button className="mt-4 bg-[#8A5A44] hover:bg-[#7A4E3A] transition-colors duration-150 text-[#F2EEE7] text-sm font-medium rounded-lg px-4 py-2 cursor-pointer">
-                  Lagre endringer
-                </button>
               </div>
             )}
 
-            {/* ---------------- KONFIGURASJON ---------------- */}
+            {/* ---------------- SHOPPING LIST ---------------- */}
+            {activeTab === 'Handleliste' && (
+              <div className="w-full">
+                <div className='w-full flex flex-row gap-10'>
+                  <div className="max-w-md w-full">
+                    <SectionLabel>Tørrvarer du ofte kjøper</SectionLabel>
+                    <p className="text-xs text-[#9B958C] -mt-1 mb-3">
+                      Legg til varer som ris, mel og sukker, så varsler vi deg når de er på tilbud
+                    </p>
+                    <ListInput placeholder="F.eks. Ris" onAdd={addDryGood} />
+                    <div className="mt-2">
+                      {dryGoods.length === 0 ? (
+                        <EmptyListHint text="Ingen tørrvarer lagt til enda" />
+                      ) : (
+                        dryGoods.map((item) => (
+                          <ListItem key={item} label={item} onRemove={() => removeDryGood(item)} />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="max-w-md w-full">
+                    <SectionLabel>Mat du liker</SectionLabel>
+                    <p className="text-xs text-[#9B958C] -mt-1 mb-3">
+                      F.eks. kylling eller kjøttdeig — brukes til favorittmat-varsler
+                    </p>
+                    <ListInput placeholder="F.eks. Kylling" onAdd={addFavoriteFood} />
+                    <div className="mt-2">
+                      {favoriteFoods.length === 0 ? (
+                        <EmptyListHint text="Ingen favorittmat lagt til enda" />
+                      ) : (
+                        favoriteFoods.map((item) => (
+                          <ListItem
+                            key={item}
+                            label={item}
+                            onRemove={() => removeFavoriteFood(item)}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* ---------------- CONFIGURATION ---------------- */}
             {activeTab === 'Konfigurasjon' && (
-              <div className="max-w-md">
-                <SectionLabel>Google Gemini</SectionLabel>
-                <p className="text-xs text-[#9B958C] -mt-1 mb-2">
-                  Brukes til å tolke og kategorisere tilbud automatisk
-                </p>
-                <TextField
-                  label="API-nøkkel"
-                  placeholder="AIza..."
-                  value={geminiApiKey}
-                  onChange={setGeminiApiKey}
-                  type="password"
-                />
-
-                <SectionLabel>Discord-webhook</SectionLabel>
-                <SettingRow
-                  title="Aktiver webhook"
-                  description="Nødvendig for å sende varsler til Discord"
-                >
-                  <Toggle checked={webhookEnabled} onChange={setWebhookEnabled} />
-                </SettingRow>
-                {webhookEnabled && (
-                  <TextField
-                    label="Webhook-URL"
-                    placeholder="https://discord.com/api/webhooks/..."
-                    value={webhookUrl}
-                    onChange={setWebhookUrl}
-                  />
-                )}
-
-                <SectionLabel>SMTP</SectionLabel>
-                <SettingRow
-                  title="Aktiver SMTP"
-                  description="Nødvendig for å sende varsler på e-post"
-                >
-                  <Toggle checked={smtpEnabled} onChange={setSmtpEnabled} />
-                </SettingRow>
-                {smtpEnabled && (
-                  <>
+              <div className="w-full">
+                <div className='w-full flex flex-row gap-10'>
+                  <div className="max-w-md w-full">
+                    <SectionLabel>Google Gemini</SectionLabel>
+                    <p className="text-xs text-[#9B958C] -mt-1 mb-2">
+                      Brukes til å tolke og kategorisere tilbud automatisk
+                    </p>
                     <TextField
-                      label="Vert (host)"
-                      placeholder="smtp.gmail.com"
-                      value={smtpHost}
-                      onChange={setSmtpHost}
-                    />
-                    <TextField
-                      label="Port"
-                      placeholder="587"
-                      value={smtpPort}
-                      onChange={setSmtpPort}
-                    />
-                    <TextField
-                      label="Brukernavn"
-                      placeholder="din@epost.no"
-                      value={smtpUser}
-                      onChange={setSmtpUser}
-                    />
-                    <TextField
-                      label="Passord"
-                      placeholder="••••••••"
-                      value={smtpPass}
-                      onChange={setSmtpPass}
+                      label="API-nøkkel"
+                      placeholder="AIza..."
+                      value={geminiApiKey}
+                      onChange={setGeminiApiKey}
                       type="password"
                     />
-                  </>
-                )}
 
-                <button className="mt-6 bg-[#8A5A44] hover:bg-[#7A4E3A] transition-colors duration-150 text-[#F2EEE7] text-sm font-medium rounded-lg px-4 py-2 cursor-pointer">
-                  Lagre endringer
-                </button>
+                    <SectionLabel>Discord-webhook</SectionLabel>
+                    <SettingRow
+                      title="Aktiver webhook"
+                      description="Nødvendig for å sende varsler til Discord"
+                    >
+                      <Toggle checked={webhookEnabled} onChange={setWebhookEnabled} />
+                    </SettingRow>
+                    {webhookEnabled && (
+                      <TextField
+                        label="Webhook-URL"
+                        placeholder="https://discord.com/api/webhooks/..."
+                        value={webhookUrl}
+                        onChange={setWebhookUrl}
+                      />
+                    )}
+
+                    <SectionLabel>SMTP</SectionLabel>
+                    <SettingRow
+                      title="Aktiver SMTP"
+                      description="Nødvendig for å sende varsler på e-post"
+                    >
+                      <Toggle checked={smtpEnabled} onChange={setSmtpEnabled} />
+                    </SettingRow>
+                    {smtpEnabled && (
+                      <>
+                        <TextField
+                          label="Vert (host)"
+                          placeholder="smtp.gmail.com"
+                          value={smtpHost}
+                          onChange={setSmtpHost}
+                        />
+                        <TextField
+                          label="Port"
+                          placeholder="587"
+                          value={smtpPort}
+                          onChange={setSmtpPort}
+                        />
+                        <TextField
+                          label="Brukernavn"
+                          placeholder="din@epost.no"
+                          value={smtpUser}
+                          onChange={setSmtpUser}
+                        />
+                        <TextField
+                          label="Passord"
+                          placeholder="••••••••"
+                          value={smtpPass}
+                          onChange={setSmtpPass}
+                          type="password"
+                        />
+                      </>
+                    )}
+                  </div>
+                  <div className="max-w-md w-full">
+                    <SectionLabel>Postnummer</SectionLabel>
+                    <p className="text-xs text-[#9B958C] -mt-1 mb-2">
+                      Brukes til å finne dine nærmeste/lokale butikker
+                    </p>
+                    <TextField
+                      label="Postnummer"
+                      placeholder="1055"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      value={postalCode}
+                      onChange={(value) => {
+                        const digitsOnly = value.replace(/\D/g, "").slice(0, 4);
+                        setPostalCode(digitsOnly);
+                      }}
+                    />
+                    <SectionLabel>Budsjett</SectionLabel>
+                    <p className="text-xs text-[#9B958C] -mt-1 mb-3">
+                      Sett et handlebudsjett for å holde oversikt over forbruket ditt
+                    </p>
+                    <div className="flex items-end gap-2 py-3.5">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-[#F2EEE7] block mb-2">
+                          Beløp (kr)
+                        </label>
+                        <input
+                          type="number"
+                          value={budgetAmount}
+                          placeholder="500"
+                          onChange={(e) => setBudgetAmount(e.target.value)}
+                          className="w-full bg-[#1A1613] border border-[#3A332E] rounded-lg px-3 py-2 text-sm text-[#F2EEE7] placeholder:text-[#6B655D] outline-none focus:border-[#8A5A44] transition-colors duration-150"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-[#F2EEE7] block mb-2">
+                          Periode
+                        </label>
+                        <select
+                          value={budgetPeriod}
+                          onChange={(e) => setBudgetPeriod(e.target.value as 'uke' | 'måned')}
+                          className="w-full bg-[#1A1613] border border-[#3A332E] rounded-lg px-3 py-2 text-sm text-[#F2EEE7] outline-none focus:border-[#8A5A44] transition-colors duration-150 cursor-pointer"
+                        >
+                          <option value="uke">Per uke</option>
+                          <option value="måned">Per måned</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             )}
           </div>

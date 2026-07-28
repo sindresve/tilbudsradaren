@@ -57,6 +57,7 @@ def init_db():
 
         gemini_api_key TEXT,
 
+        postal_code TEXT,
         weekly_budget REAL,
 
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -72,7 +73,6 @@ def init_db():
     """)
 
 
-    # Seed kjente butikker (påvirker ikke eksisterende rader, kun nye)
     for store in KNOWN_STORES:
         cursor.execute("""
         INSERT OR IGNORE INTO store_toggles (store, enabled)
@@ -102,28 +102,6 @@ def init_db():
     )
     """)
 
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS recipes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS recipe_ingredients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        recipe_id INTEGER NOT NULL,
-        ingredient_name TEXT NOT NULL,
-
-        FOREIGN KEY(recipe_id)
-            REFERENCES recipes(id)
-            ON DELETE CASCADE
-    )
-    """)
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS product_search_terms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,7 +120,6 @@ def init_db():
     """)
 
 
-    # Sørg for at settings-raden finnes fra start
     cursor.execute("""
     INSERT OR IGNORE INTO settings (id)
     VALUES (1)

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getProducts, getStores } from "@/lib/api";
-import { Product, StoreToggle } from "@/types";
+import { getProducts, getStores, getCatalogs } from "@/lib/api";
+import { Product, StoreToggle, Catalog } from "@/types";
 import Navbar from "@/components/Navbar";
 import Modal from "@/components/SettingsModal";
 
@@ -10,6 +10,7 @@ const STORE_LABELS: Record<string, string> = {
   rema: "REMA 1000",
   kiwi: "Kiwi",
   coopExtra: "Coop Extra",
+  meny: "Meny"
 };
 
 function storeLabel(store: string): string {
@@ -32,6 +33,31 @@ function discountPercent(current: number | null, old: number | null): number | n
   return Math.round(100 - (current / old) * 100);
 }
 
+function getIsoWeek(date: Date): { year: number; week: number } {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return { year: d.getUTCFullYear(), week };
+}
+
+function getNextMondayAt8(): Date {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(8, 0, 0, 0);
+
+  const dayOfWeek = now.getDay();
+  let daysUntilMonday = (1 - dayOfWeek + 7) % 7;
+
+  if (daysUntilMonday === 0 && now.getTime() >= next.getTime()) {
+    daysUntilMonday = 7;
+  }
+
+  next.setDate(now.getDate() + daysUntilMonday);
+  return next;
+}
+
 type SortOption =
   | "none"
   | "price-asc"
@@ -46,13 +72,21 @@ type SortOption =
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [stores, setStores] = useState<StoreToggle[]>([]);
+  const [availableWeeks, setAvailableWeeks] = useState<Catalog[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState<{ year: number; week: number } | null>(null);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   // Sidebar filters
   const [selectedStores, setSelectedStores] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [postalCode, setPostalCode] = useState<string>("1234")
   const [minPrice, setMinPrice] = useState<string>("");
   const [maxPrice, setMaxPrice] = useState<string>("");
+
+  // Program status
+  const [isRunning, setIsRunning] = useState(false);
+  const [nextScan, setNextScan] = useState<Date | null>(null);
+  const [timeUntilScan, setTimeUntilScan] = useState<string>("--:--:--");
 
   // Top bar filters
   const [onSaleOnly, setOnSaleOnly] = useState(true);
@@ -63,25 +97,68 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isRunning || !nextScan) {
+      setTimeUntilScan("--:--:--");
+      return;
+    }
+
+    const tick = () => {
+      const diff = nextScan.getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeUntilScan("00:00:00");
+        return;
+      }
+      const h = Math.floor(diff / 3_600_000);
+      const m = Math.floor((diff % 3_600_000) / 60_000);
+      const s = Math.floor((diff % 60_000) / 1000);
+      setTimeUntilScan(
+        `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
+      );
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [isRunning, nextScan]);
+
+  function handleToggleRunning() {
+    if (isRunning) {
+      setIsRunning(false);
+      setNextScan(null);
+      return;
+    }
+
+    // Temp, change later
+
+    setIsRunning(true);
+    setNextScan(getNextMondayAt8());
+  }
+
+  useEffect(() => {
     getStores()
       .then((s) => {
         setStores(s);
-        // Default: all enabled stores selected.
         setSelectedStores(new Set(s.filter((x) => x.enabled).map((x) => x.store)));
       })
       .catch(() => {
-        // Store list is optional decoration for the filter bar — fail quietly.
+        // Store list is optional decoration for the filter bar, fail quietly.
       });
   }, []);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    // Fetch everything once; store/category filtering happens client-side alongside the other filters.
-    getProducts()
+    getProducts(undefined, selectedWeek?.year, selectedWeek?.week)
       .then(setProducts)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  }, [selectedWeek]);
+
+  useEffect(() => {
+    getCatalogs()
+      .then(setAvailableWeeks)
+      .catch(() => {
+      });
   }, []);
 
   const now = new Date();
@@ -110,18 +187,14 @@ export default function Home() {
     });
   }
 
-  // Categories present in the current result set, for the category checkbox list.
+  // Categories present in the current result set, for the category checkbox list
   const categories = Array.from(
     new Set(products.map((p) => p.category).filter((c): c is string => Boolean(c)))
   ).sort((a, b) => a.localeCompare(b, "nb"));
-
-  // Default all categories to checked once we know what they are (only runs once,
-  // right after products first load — after that the user's own choices take over).
   useEffect(() => {
     if (categories.length > 0 && selectedCategories.size === 0 && !loading) {
       setSelectedCategories(new Set(categories));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
   const min = minPrice.trim() === "" ? null : Number(minPrice);
@@ -185,6 +258,12 @@ export default function Home() {
     );
   });
 
+  const weekOptions = Array.from(
+    new Map(
+      availableWeeks.map((c) => [`${c.year}-${c.week}`, { year: c.year, week: c.week }])
+    ).values()
+  ).sort((a, b) => b.year - a.year || b.week - a.week);
+
   productsBeforeStoreFilter.forEach((p) => {
     storeCounts.set(p.store, (storeCounts.get(p.store) ?? 0) + 1);
   });
@@ -192,7 +271,7 @@ export default function Home() {
   const visibleProducts = products
     .filter((p) => selectedStores.size === 0 || selectedStores.has(p.store))
     .filter((p) => {
-      // While categories haven't been seeded yet (or there are none), don't filter.
+      // While categories haven't been seeded yet (or there are none), don't filter
       if (categories.length === 0 || selectedCategories.size === 0) return true;
       return p.category !== null && selectedCategories.has(p.category);
     })
@@ -266,7 +345,7 @@ export default function Home() {
       <div className="mx-auto max-w-6xl px-6 py-8 sm:px-10">
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left sidebar */}
-          <aside className="shrink-0 lg:w-64">
+          <aside className="shrink-0 lg:w-64 flex flex-col gap-2">
             <div className="rounded-xl border border-[#1c1a16]/10 bg-white p-5">
               <h3 className="text-sm font-semibold">Butikker</h3>
               <div className="mt-3 flex flex-col gap-2">
@@ -345,12 +424,59 @@ export default function Home() {
                 </button>
               )}
             </div>
+            <div className="rounded-xl border border-[#1c1a16]/10 bg-white p-5">
+              <h3 className="text-sm font-semibold">Info</h3>
+              <div className="flex flex-col gap-3  pt-4">
+                <div className="flex items-center justify-between text-xs text-[#1c1a16]/50">
+                  <span>Uke</span>
+                  <span className="font-mono font-semibold text-[#1c1a16]/80">
+                    {getIsoWeek(new Date()).week}, {getIsoWeek(new Date()).year}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-[#1c1a16]/50">
+                  <span>Neste scan om</span>
+                  <span className="font-mono font-semibold text-[#1c1a16]/80">
+                    {timeUntilScan}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleToggleRunning}
+                  className={`mt-1 w-full rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                    isRunning
+                      ? "bg-[#1c1a16]/5 text-[#8a5a3d] hover:bg-[#1c1a16]/10"
+                      : "bg-[#8a5a3d] text-white hover:bg-[#7a4d33]"
+                  }`}
+                >
+                  {isRunning ? "Stopp" : "Start"}
+                </button>
+              </div>
+            </div>
           </aside>
 
           {/* Right side */}
           <div className="min-w-0 flex-1">
-            {/* Search + sale toggle + sort */}
             <div className="mb-4 flex flex-wrap items-center gap-3">
+              <select
+                value={selectedWeek ? `${selectedWeek.year}-${selectedWeek.week}` : "current"}
+                onChange={(e) => {
+                  if (e.target.value === "current") {
+                    setSelectedWeek(null);
+                    return;
+                  }
+                  const [year, week] = e.target.value.split("-").map(Number);
+                  setSelectedWeek({ year, week });
+                }}
+                className="shrink-0 rounded-lg border border-[#1c1a16]/20 bg-white px-4 py-2 text-sm font-medium text-[#1c1a16]/70 focus:border-[#1c1a16]/40 focus:outline-none"
+              >
+                <option value="current">Denne uken</option>
+                {weekOptions.map(({ year, week }) => (
+                  <option key={`${year}-${week}`} value={`${year}-${week}`}>
+                    Uke {week}
+                  </option>
+                ))}
+              </select>
               <input
                 type="text"
                 value={search}
@@ -361,10 +487,10 @@ export default function Home() {
 
               <button
                 onClick={() => setOnSaleOnly((v) => !v)}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                className={`shrink-0 rounded-lg cursor-pointer px-4 py-2 text-sm font-medium transition-colors ${
                   onSaleOnly
-                    ? "border-[#8a5a3d] bg-[#8a5a3d] text-white"
-                    : "border-[#1c1a16]/20 text-[#1c1a16]/70 hover:border-[#1c1a16]/40"
+                    ? "bg-[#8a5a3d] text-white"
+                    : "outline outline-[#1c1a16]/20 text-[#1c1a16]/70 hover:outline-[#1c1a16]/40"
                 }`}
               >
                 Kun tilbud
@@ -373,7 +499,7 @@ export default function Home() {
               <select
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="shrink-0 rounded-full border border-[#1c1a16]/20 bg-white px-4 py-2 text-sm font-medium text-[#1c1a16]/70 focus:border-[#1c1a16]/40 focus:outline-none"
+                className="shrink-0 rounded-lg cursor-pointer border border-[#1c1a16]/20 bg-white px-4 py-2 text-sm font-medium text-[#1c1a16]/70 focus:border-[#1c1a16]/40 focus:outline-none"
               >
                 <option value="none">Standard</option>
                 <option value="price-asc">Pris: lav → høy</option>

@@ -20,3 +20,11 @@ export interface StoreToggle {
   store: string;
   enabled: number; // sqlite boolean: 0 or 1
 }
+
+export interface Catalog {
+  id: number;
+  store: string;
+  year: number;
+  week: number;
+  created_at: string;
+}
