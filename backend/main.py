@@ -49,19 +49,36 @@ def cleanup_data_dir(data_dir="data"):
 
     print(f"Ryddet opp i {data_dir}/")
 
+def get_scan_settings(conn):
+    """Henter postnummer og aktiverte butikker fra databasen."""
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT store FROM store_toggles WHERE enabled = 1")
+    enabled_stores = [row["store"] for row in cursor.fetchall()]
+
+    cursor.execute("SELECT postal_code FROM settings WHERE id = 1")
+    row = cursor.fetchone()
+    postal_code = row["postal_code"] if row else None
+
+    return enabled_stores, postal_code
+
 
 def main():
     init_db()
     info = get_current_datetime()
 
-    # Hent kun aktiverte butikker fra databasen
     conn = get_connection()
-    enabled_stores = ["meny"]
+    enabled_stores, postal_code = get_scan_settings(conn)
     conn.close()
+
+    if not enabled_stores:
+        raise RuntimeError("Ingen butikker er aktivert i innstillinger")
+    if not postal_code:
+        raise RuntimeError("Ingen postnummer satt i innstillinger")
 
     TilbudsRadaren(
         enabled_stores,
-        "1654",
+        postal_code,
         info
     )
 

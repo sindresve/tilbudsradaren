@@ -17,11 +17,9 @@ class StoreToggle(BaseModel):
 
 
 class ConfigSettings(BaseModel):
-    # gemini_api_key is never sent back in full - only a masked preview,
-    # plus whether one is set at all. The frontend uses `gemini_api_key_set`
-    # to decide what to show; it never receives the real key back.
     gemini_api_key_set: bool
     gemini_api_key_preview: Optional[str] = None
+    postal_code: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -30,29 +28,38 @@ class SettingsResponse(BaseModel):
 
 
 class SettingsPatch(BaseModel):
-    # Keyed by store name, e.g. {"rema": true, "meny": false}.
     stores: Optional[Dict[str, bool]] = None
-    # Plain-text key as typed by the user - encrypted before it touches the DB.
-    # Sending an empty string clears the stored key.
     gemini_api_key: Optional[str] = None
+    postal_code: Optional[str] = None
 
 
 def _get_config(conn) -> ConfigSettings:
-    # Check whether *something* is stored, independent of whether it can
-    # still be decrypted (key rotation edge case).
     cursor = conn.cursor()
-    cursor.execute("SELECT gemini_api_key FROM settings WHERE id = 1")
+    cursor.execute("SELECT gemini_api_key, postal_code FROM settings WHERE id = 1")
     row = cursor.fetchone()
     has_stored_value = bool(row and row["gemini_api_key"])
+    postal_code = row["postal_code"] if row else None
 
     if not has_stored_value:
-        return ConfigSettings(gemini_api_key_set=False, gemini_api_key_preview=None)
+        return ConfigSettings(
+            gemini_api_key_set=False, 
+            gemini_api_key_preview=None,
+            postal_code=postal_code
+        )
 
-    plain = get_gemini_api_key()  # None if decrypt fails
+    plain = get_gemini_api_key() 
     if plain is None:
-        return ConfigSettings(gemini_api_key_set=True, gemini_api_key_preview="••• (kan ikke leses)")
+        return ConfigSettings(
+            gemini_api_key_set=True, 
+            gemini_api_key_preview="••• (kan ikke leses)",
+            postal_code=postal_code
+        )
 
-    return ConfigSettings(gemini_api_key_set=True, gemini_api_key_preview=mask_value(plain))
+    return ConfigSettings(
+        gemini_api_key_set=True, 
+        gemini_api_key_preview=mask_value(plain),
+        postal_code=postal_code 
+    )
 
 
 @router.get("", response_model=SettingsResponse)
@@ -78,9 +85,14 @@ def patch_settings(payload: SettingsPatch, conn=Depends(get_db)):
                 (enabled, store),
             )
 
+    if payload.postal_code is not None:
+        cursor.execute(
+            "UPDATE settings SET postal_code = ? WHERE id = 1",
+            (payload.postal_code,),
+        )
+
     if payload.gemini_api_key is not None:
         if payload.gemini_api_key == "":
-            # Empty string = explicit clear
             cursor.execute("UPDATE settings SET gemini_api_key = NULL WHERE id = 1")
         else:
             try:

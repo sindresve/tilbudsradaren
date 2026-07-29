@@ -381,8 +381,6 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
   const [savedPostalCode, setSavedPostalCode] = useState('');
   const [budgetAmount, setBudgetAmount] = useState('');
   const [savedBudgetAmount, setSavedBudgetAmount] = useState('');
-  const [budgetPeriod, setBudgetPeriod] = useState<'uke' | 'måned'>('uke');
-  const [savedBudgetPeriod, setSavedBudgetPeriod] = useState<'uke' | 'måned'>('uke');
 
   // ---------------- DIRTY CHECKS ----------------
   const notificationsDirty = useMemo(
@@ -415,8 +413,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       webhookEnabled !== savedWebhookEnabled ||
       smtpEnabled !== savedSmtpEnabled ||
       postalCode !== savedPostalCode ||
-      budgetAmount !== savedBudgetAmount ||
-      budgetPeriod !== savedBudgetPeriod,
+      budgetAmount !== savedBudgetAmount,
     [
       geminiApiKey,
       webhookUrl, savedWebhookUrl,
@@ -427,8 +424,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       webhookEnabled, savedWebhookEnabled,
       smtpEnabled, savedSmtpEnabled,
       postalCode, savedPostalCode,
-      budgetAmount, savedBudgetAmount,
-      budgetPeriod, savedBudgetPeriod,
+      budgetAmount, savedBudgetAmount
     ]
   );
 
@@ -441,14 +437,9 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     Konfigurasjon: configDirty,
   };
 
-  // ---------------- DIFF PAYLOAD BUILDER ----------------
-  // Only includes keys that actually changed since last save, grouped by
-  // section, so the backend can run targeted UPDATE queries instead of
-  // rewriting every column.
   const buildChangedPayload = () => {
     const payload: Record<string, unknown> = {};
 
-    // notifications: only include individual notification keys that changed
     if (notificationsDirty) {
       const changedNotifications: Partial<NotificationsState> = {};
       (Object.keys(notifications) as (keyof NotificationsState)[]).forEach((key) => {
@@ -464,8 +455,10 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     if (geminiApiKey !== '') {
       payload.geminiApiKey = geminiApiKey;
     }
+    if (postalCode !== '') {
+      payload.postalCode = postalCode;
+    }
 
-    // stores: only changed store keys
     if (JSON.stringify(stores) !== JSON.stringify(savedStores)) {
       const changedStores: Partial<StoresState> = {};
       (Object.keys(stores) as (keyof StoresState)[]).forEach((key) => {
@@ -474,7 +467,6 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       if (Object.keys(changedStores).length > 0) payload.stores = changedStores;
     }
 
-    // allergies: only changed allergy keys
     if (JSON.stringify(allergies) !== JSON.stringify(savedAllergies)) {
       const changedAllergies: Partial<AllergiesState> = {};
       (Object.keys(allergies) as (keyof AllergiesState)[]).forEach((key) => {
@@ -483,7 +475,6 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       if (Object.keys(changedAllergies).length > 0) payload.allergies = changedAllergies;
     }
 
-    // lists: send the whole list only if it changed (lists are replaced, not diffed field-by-field)
     if (JSON.stringify(dryGoods) !== JSON.stringify(savedDryGoods)) {
       payload.dryGoods = dryGoods;
     }
@@ -491,7 +482,6 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       payload.favoriteFoods = favoriteFoods;
     }
 
-    // config: only changed individual fields
     const configFieldMap: Array<[string, unknown, unknown]> = [
       ['webhookUrl', webhookUrl, savedWebhookUrl],
       ['smtpHost', smtpHost, savedSmtpHost],
@@ -502,7 +492,6 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       ['smtpEnabled', smtpEnabled, savedSmtpEnabled],
       ['postalCode', postalCode, savedPostalCode],
       ['budgetAmount', budgetAmount, savedBudgetAmount],
-      ['budgetPeriod', budgetPeriod, savedBudgetPeriod],
     ];
     const changedConfig: Record<string, unknown> = {};
     configFieldMap.forEach(([key, current, saved]) => {
@@ -531,11 +520,14 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
 
       // Sync saved snapshots only for sections that were part of the payload
       if (payload.notifications) setSavedNotifications(notifications);
-      if (payload.stores || payload.geminiApiKey) {
+      if (payload.stores || payload.geminiApiKey || payload.postalCode) {
         const result = await patchSettings({
           ...(payload.stores ? { stores: payload.stores as Record<string, boolean> } : {}),
           ...(payload.geminiApiKey ? { gemini_api_key: payload.geminiApiKey as string } : {}),
+          ...(payload.postalCode ? { postal_code: payload.postalCode as string } : {}),
         });
+        setPostalCode(result.config.postal_code ?? '');
+        setPostalCode(result.config.postal_code)
         setGeminiKeySet(result.config.gemini_api_key_set);
         setGeminiKeyPreview(result.config.gemini_api_key_preview);
       }
@@ -552,7 +544,6 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
         setSavedSmtpEnabled(smtpEnabled);
         setSavedPostalCode(postalCode);
         setSavedBudgetAmount(budgetAmount);
-        setSavedBudgetPeriod(budgetPeriod);
       }
       if (payload.geminiApiKey) setGeminiApiKey('');
     } catch (err) {
@@ -621,38 +612,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
 
     getSettings()
       .then((settings) => {
-        if (cancelled) return;
-        const storesMap: StoresState = {};
-        settings.stores.forEach((s) => {
-          storesMap[s.store] = Boolean(s.enabled);
-        });
-        setStores(storesMap);
-        setSavedStores(storesMap);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setStoresLoadError(
-          err instanceof Error ? err.message : 'Klarte ikke å hente innstillinger'
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setStoresLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let cancelled = false;
-    setStoresLoading(true);
-    setStoresLoadError(null);
-
-    getSettings()
-      .then((settings) => {
+        console.log(settings)
         if (cancelled) return;
         const storesMap: StoresState = {};
         settings.stores.forEach((s) => {
@@ -663,6 +623,8 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
 
         setGeminiKeySet(settings.config.gemini_api_key_set);
         setGeminiKeyPreview(settings.config.gemini_api_key_preview);
+        setPostalCode(settings.config.postal_code);
+        setSavedPostalCode(settings.config.postal_code)
       })
       .catch((err) => {
         if (cancelled) return;
@@ -1039,7 +1001,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                     <div className="flex items-end gap-2 py-3.5">
                       <div className="flex-1">
                         <label className="text-sm font-medium text-[#F2EEE7] block mb-2">
-                          Beløp (kr)
+                          Beløp i kr (per uke)
                         </label>
                         <input
                           type="number"
@@ -1048,19 +1010,6 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                           onChange={(e) => setBudgetAmount(e.target.value)}
                           className="w-full bg-[#1A1613] border border-[#3A332E] rounded-lg px-3 py-2 text-sm text-[#F2EEE7] placeholder:text-[#6B655D] outline-none focus:border-[#8A5A44] transition-colors duration-150"
                         />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-sm font-medium text-[#F2EEE7] block mb-2">
-                          Periode
-                        </label>
-                        <select
-                          value={budgetPeriod}
-                          onChange={(e) => setBudgetPeriod(e.target.value as 'uke' | 'måned')}
-                          className="w-full bg-[#1A1613] border border-[#3A332E] rounded-lg px-3 py-2 text-sm text-[#F2EEE7] outline-none focus:border-[#8A5A44] transition-colors duration-150 cursor-pointer"
-                        >
-                          <option value="uke">Per uke</option>
-                          <option value="måned">Per måned</option>
-                        </select>
                       </div>
                     </div>
                   </div>

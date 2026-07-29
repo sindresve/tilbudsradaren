@@ -5,6 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 export interface ConfigSettings {
   gemini_api_key_set: boolean;
   gemini_api_key_preview: string | null;
+  postal_code: string;
 }
 
 export interface SettingsResponse {
