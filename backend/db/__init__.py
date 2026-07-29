@@ -50,12 +50,14 @@ def init_db():
         id INTEGER PRIMARY KEY CHECK (id = 1),
 
         discord_webhook_url TEXT,
+        webhook_enabled BOOLEAN NOT NULL DEFAULT 0,
 
         smtp_host TEXT,
         smtp_port INTEGER,
         smtp_username TEXT,
         smtp_password TEXT,
         email_to TEXT,
+        smtp_enabled BOOLEAN NOT NULL DEFAULT 0,
 
         gemini_api_key TEXT,
 

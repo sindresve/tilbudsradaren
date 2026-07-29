@@ -6,6 +6,14 @@ export interface ConfigSettings {
   gemini_api_key_set: boolean;
   gemini_api_key_preview: string | null;
   postal_code: string;
+  email_to: string;
+  discord_webhook_url: string;
+  webhook_enabled: boolean;
+  smtp_enabled: boolean;
+  smtp_host: string;
+  smtp_port: string;
+  smtp_username: string;
+  weekly_budget: string;
 }
 
 export interface SettingsResponse {
@@ -24,6 +32,19 @@ export interface SettingsPatchPayload {
 export async function getSettings(): Promise<SettingsResponse> {
   const res = await fetch(`${API_URL}/api/settings`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load settings: ${res.status}`);
+  return res.json();
+}
+
+export async function testNotification(channel: 'email' | 'discord'): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_URL}/api/settings/test-notification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channel }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Ukjent feil' }));
+    throw new Error(err.detail ?? 'Klarte ikke å sende testvarsel');
+  }
   return res.json();
 }
 

@@ -3,12 +3,69 @@
 import { Bell, Plug, Plus, ShoppingBasket, SlidersHorizontal, Trash2, X, Circle, Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getSettings, patchSettings } from '@/lib/api';
+import { getSettings, patchSettings, testNotification } from '@/lib/api';
 import { STORE_LABELS } from "@/lib/constants"
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+function TestButton({
+  onTest,
+  disabled,
+}: {
+  onTest: () => void;
+  disabled?: boolean;
+}) {
+  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleClick = async () => {
+    setStatus('sending');
+    setErrorMsg(null);
+    try {
+      await onTest();
+      setStatus('success');
+      setTimeout(() => setStatus('idle'), 2500);
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg(err instanceof Error ? err.message : 'Ukjent feil');
+      setTimeout(() => setStatus('idle'), 3500);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={handleClick}
+        disabled={disabled || status === 'sending'}
+        className={`text-xs font-medium rounded-full px-3 py-1.5 border transition-colors duration-150 cursor-pointer ${
+          status === 'success'
+            ? 'bg-[#4C7A5A] border-[#4C7A5A] text-[#F2EEE7]'
+            : status === 'error'
+            ? 'bg-[#C0554A] border-[#C0554A] text-[#F2EEE7]'
+            : 'bg-transparent border-[#3A332E] text-[#9B958C] hover:border-[#8A5A44]/60'
+        } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+      >
+        {status === 'sending' ? (
+          <span className="flex items-center gap-1">
+            <Loader2 size={12} className="animate-spin" />
+            Sender…
+          </span>
+        ) : status === 'success' ? (
+          'Sendt ✓'
+        ) : status === 'error' ? (
+          'Feilet'
+        ) : (
+          'Test'
+        )}
+      </button>
+      {status === 'error' && errorMsg && (
+        <span className="text-xs text-[#C0554A]">{errorMsg}</span>
+      )}
+    </div>
+  );
 }
 
 function ScrollbarStyles() {
@@ -360,6 +417,8 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
   const [savedPostalCode, setSavedPostalCode] = useState('');
   const [budgetAmount, setBudgetAmount] = useState('');
   const [savedBudgetAmount, setSavedBudgetAmount] = useState('');
+  const [emailTo, setEmailTo] = useState('');
+  const [savedEmailTo, setSavedEmailTo] = useState('');
 
   // ---------------- DIRTY CHECKS ----------------
   const notificationsDirty = useMemo(
@@ -391,7 +450,8 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       webhookEnabled !== savedWebhookEnabled ||
       smtpEnabled !== savedSmtpEnabled ||
       postalCode !== savedPostalCode ||
-      budgetAmount !== savedBudgetAmount,
+      budgetAmount !== savedBudgetAmount ||
+      emailTo !== savedEmailTo,
     [
       geminiApiKey,
       webhookUrl, savedWebhookUrl,
@@ -402,7 +462,8 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       webhookEnabled, savedWebhookEnabled,
       smtpEnabled, savedSmtpEnabled,
       postalCode, savedPostalCode,
-      budgetAmount, savedBudgetAmount
+      budgetAmount, savedBudgetAmount,
+      emailTo, savedEmailTo,
     ]
   );
 
@@ -467,6 +528,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       ['smtpEnabled', smtpEnabled, savedSmtpEnabled],
       ['postalCode', postalCode, savedPostalCode],
       ['budgetAmount', budgetAmount, savedBudgetAmount],
+      ['emailTo', emailTo, savedEmailTo],
     ];
     const changedConfig: Record<string, unknown> = {};
     configFieldMap.forEach(([key, current, saved]) => {
@@ -491,15 +553,26 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     try {
       // Sync saved snapshots only for sections that were part of the payload
       if (payload.notifications) setSavedNotifications(notifications);
-      if (payload.stores || payload.geminiApiKey || payload.postalCode || payload.allergies || payload.staples) {
+      if (payload.stores || payload.geminiApiKey || payload.postalCode || payload.allergies || payload.staples || payload.config) {
+        const cfg = (payload.config ?? {}) as Record<string, unknown>;
         const result = await patchSettings({
           ...(payload.stores ? { stores: payload.stores as Record<string, boolean> } : {}),
           ...(payload.allergies ? { allergies: payload.allergies as Record<string, boolean> } : {}),
           ...(payload.staples ? { staples: payload.staples as string[] } : {}),
           ...(payload.geminiApiKey ? { gemini_api_key: payload.geminiApiKey as string } : {}),
           ...(payload.postalCode ? { postal_code: payload.postalCode as string } : {}),
+          ...(cfg.emailTo !== undefined ? { email_to: cfg.emailTo as string } : {}),
+          ...(cfg.webhookUrl !== undefined ? { discord_webhook_url: cfg.webhookUrl as string } : {}),
+          ...(cfg.webhookEnabled !== undefined ? { webhook_enabled: cfg.webhookEnabled as boolean } : {}),
+          ...(cfg.smtpHost !== undefined ? { smtp_host: cfg.smtpHost as string } : {}),
+          ...(cfg.smtpPort !== undefined ? { smtp_port: cfg.smtpPort as string } : {}),
+          ...(cfg.smtpUser !== undefined ? { smtp_username: cfg.smtpUser as string } : {}),
+          ...(cfg.smtpPass !== undefined ? { smtp_password: cfg.smtpPass as string } : {}),
+          ...(cfg.smtpEnabled !== undefined ? { smtp_enabled: cfg.smtpEnabled as boolean } : {}),
+          ...(cfg.budgetAmount !== undefined ? { weekly_budget: cfg.budgetAmount as string } : {}),
         });
         setPostalCode(result.config.postal_code ?? '');
+        setEmailTo(result.config.email_to ?? '');
         setGeminiKeySet(result.config.gemini_api_key_set);
         setGeminiKeyPreview(result.config.gemini_api_key_preview);
         setStaples(result.staples);
@@ -517,6 +590,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
         setSavedSmtpEnabled(smtpEnabled);
         setSavedPostalCode(postalCode);
         setSavedBudgetAmount(budgetAmount);
+        setSavedEmailTo(emailTo);
       }
       if (payload.geminiApiKey) setGeminiApiKey('');
     } catch (err) {
@@ -608,6 +682,26 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
         setGeminiKeyPreview(settings.config.gemini_api_key_preview);
         setPostalCode(settings.config.postal_code);
         setSavedPostalCode(settings.config.postal_code)
+        setEmailTo(settings.config.email_to ?? '');
+        setSavedEmailTo(settings.config.email_to ?? '');
+
+        setWebhookUrl(settings.config.discord_webhook_url ?? '');
+        setSavedWebhookUrl(settings.config.discord_webhook_url ?? '');
+        setWebhookEnabled(settings.config.webhook_enabled ?? false);
+        setSavedWebhookEnabled(settings.config.webhook_enabled ?? false);
+
+        setSmtpHost(settings.config.smtp_host ?? '');
+        setSavedSmtpHost(settings.config.smtp_host ?? '');
+        setSmtpPort(settings.config.smtp_port ?? '');
+        setSavedSmtpPort(settings.config.smtp_port ?? '');
+        setSmtpUser(settings.config.smtp_username ?? '');
+        setSavedSmtpUser(settings.config.smtp_username ?? '');
+        setSmtpEnabled(settings.config.smtp_enabled ?? false);
+        setSavedSmtpEnabled(settings.config.smtp_enabled ?? false);
+        // smtp_password bevisst ikke satt her — se under
+
+        setBudgetAmount(settings.config.weekly_budget ?? '');
+        setSavedBudgetAmount(settings.config.weekly_budget ?? '');
       })
       .catch((err) => {
         if (cancelled) return;
@@ -891,7 +985,13 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                       title="Aktiver webhook"
                       description="Nødvendig for å sende varsler til Discord"
                     >
-                      <Toggle checked={webhookEnabled} onChange={setWebhookEnabled} />
+                      <div className="flex items-center gap-3">
+                        <TestButton
+                          onTest={() => testNotification('discord')}
+                          disabled={!webhookEnabled || !webhookUrl}
+                        />
+                        <Toggle checked={webhookEnabled} onChange={setWebhookEnabled} />
+                      </div>
                     </SettingRow>
                     {webhookEnabled && (
                       <TextField
@@ -907,7 +1007,13 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                       title="Aktiver SMTP"
                       description="Nødvendig for å sende varsler på e-post"
                     >
-                      <Toggle checked={smtpEnabled} onChange={setSmtpEnabled} />
+                      <div className="flex items-center gap-3">
+                        <TestButton
+                          onTest={() => testNotification('email')}
+                          disabled={!smtpEnabled || !smtpHost || !emailTo}
+                        />
+                        <Toggle checked={smtpEnabled} onChange={setSmtpEnabled} />
+                      </div>
                     </SettingRow>
                     {smtpEnabled && (
                       <>
@@ -935,6 +1041,12 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                           value={smtpPass}
                           onChange={setSmtpPass}
                           type="password"
+                        />
+                        <TextField
+                          label="Send til (mottaker-e-post)"
+                          placeholder="din-mottaker@epost.no"
+                          value={emailTo}
+                          onChange={setEmailTo}
                         />
                       </>
                     )}

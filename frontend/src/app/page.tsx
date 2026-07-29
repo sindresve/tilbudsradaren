@@ -349,11 +349,11 @@ export default function Home() {
     selectedStores.size !== stores.filter((s) => s.enabled).length;
 
   return (
-    <main className="min-h-screen bg-[#f6f3ec] text-[#1c1a16]">
+    <main className="h-full flex flex-col bg-[#f6f3ec] text-[#1c1a16]">
       <Navbar setModalOpen={handleOpen} />
       <Modal isOpen={settingsModalOpen} onClose={handleClose} />
       <ProductModal isOpen={productModalOpen} onClose={handleCloseProductModal} p={selectedProduct} />
-      <div className="mx-auto max-w-6xl px-6 py-8 sm:px-10">
+      <div className="mx-auto max-w-7xl px-6 py-8 sm:px-10">
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left sidebar */}
           <aside className="shrink-0 lg:w-64 flex flex-col gap-2">
@@ -468,7 +468,7 @@ export default function Home() {
 
           {/* Right side */}
           <div className="min-w-0 flex-1">
-            <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="mb-4 flex flex-wrap items-center gap-3 pr-4">
               <select
                 value={selectedWeek ? `${selectedWeek.year}-${selectedWeek.week}` : "current"}
                 onChange={(e) => {
@@ -556,14 +556,14 @@ export default function Home() {
 
             {/* Product grid */}
             {!loading && !error && visibleProducts.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 overflow-y-scroll custom-scrollbar max-h-[calc(81vh-4px)] pb-4 p-0.5 pr-1">
                 {visibleProducts.map((p) => {
                   const pct = effectiveDiscount(p);
                   return (
                     <div
                       key={p.id}
                       onClick={() => handleOpenProductModal(p)}
-                      className="group relative overflow-hidden cursor-pointer rounded-lg border border-[#1c1a16]/10 bg-white px-4 py-4 shadow-sm transition-shadow hover:shadow-md"
+                      className="group relative overflow-hidden cursor-pointer rounded-lg border border-[#1c1a16]/10 bg-white px-4 py-4 ease-in duration-100 transition-color outline-2 outline-transparent hover:outline-[#8a5a3d]"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
