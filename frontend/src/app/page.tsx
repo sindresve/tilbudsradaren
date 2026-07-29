@@ -353,7 +353,7 @@ export default function Home() {
       <Navbar setModalOpen={handleOpen} />
       <Modal isOpen={settingsModalOpen} onClose={handleClose} />
       <ProductModal isOpen={productModalOpen} onClose={handleCloseProductModal} p={selectedProduct} />
-      <div className="mx-auto max-w-7xl px-6 py-8 sm:px-10">
+      <div className="mx-auto max-w-7xl w-full px-6 py-8 sm:px-10">
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left sidebar */}
           <aside className="shrink-0 lg:w-64 flex flex-col gap-2">
