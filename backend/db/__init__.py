@@ -7,6 +7,8 @@ KNOWN_STORES = {
     "meny": "pdf",
 }
 
+ALLERGIES = ["gluten", "laktose", "nøtter", "egg", "skalldyr"]
+
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
@@ -79,6 +81,20 @@ def init_db():
         VALUES (?, 1)
         """, (store,))
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS allergens (
+        allergy TEXT PRIMARY KEY,
+        enabled BOOLEAN NOT NULL DEFAULT 1
+    )
+    """)
+
+    for allergy in ALLERGIES:
+        cursor.execute("""
+        INSERT OR IGNORE INTO allergens (allergy, enabled)
+        VALUES (?, 1)
+        """, (allergy,))
+
+
 
     cursor.execute("""
     INSERT OR IGNORE INTO settings (id)
@@ -86,12 +102,6 @@ def init_db():
     """)
 
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS allergens (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE
-    )
-    """)
 
 
     cursor.execute("""

@@ -21,6 +21,11 @@ export interface StoreToggle {
   enabled: number; // sqlite boolean: 0 or 1
 }
 
+export interface AllergyToggle {
+  allergy: string;
+  enabled: number;
+}
+
 export interface Catalog {
   id: number;
   store: string;

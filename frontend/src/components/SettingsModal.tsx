@@ -316,23 +316,15 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
 
   // ---------------- PREFERENCES STATE ----------------
   type StoresState = Record<string, boolean>;
-  type AllergiesState = { gluten: boolean; laktose: boolean; nøtter: boolean; egg: boolean; skalldyr: boolean };
-
-  const initialAllergies: AllergiesState = {
-    gluten: false,
-    laktose: false,
-    nøtter: false,
-    egg: false,
-    skalldyr: false,
-  };
+  type AllergiesState = Record<string, boolean>;
 
   const [stores, setStores] = useState<StoresState>({});
   const [savedStores, setSavedStores] = useState<StoresState>({});
   const [storesLoading, setStoresLoading] = useState(true);
   const [storesLoadError, setStoresLoadError] = useState<string | null>(null);
 
-  const [allergies, setAllergies] = useState<AllergiesState>(initialAllergies);
-  const [savedAllergies, setSavedAllergies] = useState<AllergiesState>(initialAllergies);
+  const [allergies, setAllergies] = useState<AllergiesState>({});
+  const [savedAllergies, setSavedAllergies] = useState<AllergiesState>({});
 
   // ---------------- SHOPPING LIST STATE ----------------
   const initialDryGoods = ['Ris', 'Mel', 'Sukker', 'Havregryn'];
@@ -514,19 +506,15 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     setIsSaving(true);
     setSaveError(null);
     try {
-      if (payload.stores) {
-        await patchSettings({ stores: payload.stores as Record<string, boolean> });
-      }
-
       // Sync saved snapshots only for sections that were part of the payload
       if (payload.notifications) setSavedNotifications(notifications);
-      if (payload.stores || payload.geminiApiKey || payload.postalCode) {
+      if (payload.stores || payload.geminiApiKey || payload.postalCode || payload.allergies) {
         const result = await patchSettings({
           ...(payload.stores ? { stores: payload.stores as Record<string, boolean> } : {}),
+          ...(payload.allergies ? { allergies: payload.allergies as Record<string, boolean> } : {}),
           ...(payload.geminiApiKey ? { gemini_api_key: payload.geminiApiKey as string } : {}),
           ...(payload.postalCode ? { postal_code: payload.postalCode as string } : {}),
         });
-        setPostalCode(result.config.postal_code ?? '');
         setPostalCode(result.config.postal_code)
         setGeminiKeySet(result.config.gemini_api_key_set);
         setGeminiKeyPreview(result.config.gemini_api_key_preview);
@@ -620,6 +608,13 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
         });
         setStores(storesMap);
         setSavedStores(storesMap);
+
+        const allergiesMap: AllergiesState = {};
+        settings.allergies.forEach((s) => {
+          allergiesMap[s.allergy] = Boolean(s.enabled);
+        });
+        setAllergies(allergiesMap);
+        setSavedAllergies(allergiesMap);
 
         setGeminiKeySet(settings.config.gemini_api_key_set);
         setGeminiKeyPreview(settings.config.gemini_api_key_preview);

@@ -1,4 +1,4 @@
-import { Catalog, Product, StoreToggle } from "@/types";
+import { Catalog, Product, StoreToggle, AllergyToggle } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -10,11 +10,13 @@ export interface ConfigSettings {
 
 export interface SettingsResponse {
   stores: StoreToggle[];
+  allergies: AllergyToggle[];
   config: ConfigSettings;
 }
 
 export interface SettingsPatchPayload {
   stores?: Record<string, boolean>;
+  allergies?: Record<string, boolean>;
   gemini_api_key?: string;
 }
 

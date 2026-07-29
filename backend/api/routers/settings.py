@@ -15,6 +15,10 @@ class StoreToggle(BaseModel):
     store: str
     enabled: bool
 
+class AllergyToggle(BaseModel):
+    allergy: str
+    enabled: bool
+
 
 class ConfigSettings(BaseModel):
     gemini_api_key_set: bool
@@ -24,11 +28,13 @@ class ConfigSettings(BaseModel):
 
 class SettingsResponse(BaseModel):
     stores: List[StoreToggle]
+    allergies: List[AllergyToggle]
     config: ConfigSettings
 
 
 class SettingsPatch(BaseModel):
     stores: Optional[Dict[str, bool]] = None
+    allergies: Optional[Dict[str, bool]] = None
     gemini_api_key: Optional[str] = None
     postal_code: Optional[str] = None
 
@@ -66,10 +72,14 @@ def _get_config(conn) -> ConfigSettings:
 def get_settings(conn=Depends(get_db)):
     cursor = conn.cursor()
     cursor.execute("SELECT store, enabled FROM store_toggles")
-    rows = cursor.fetchall()
+    store_rows = cursor.fetchall()
+
+    cursor.execute("SELECT allergy, enabled FROM allergens")
+    allergy_rows = cursor.fetchall()
 
     return SettingsResponse(
-        stores=[row_to_dict(row) for row in rows],
+        stores=[row_to_dict(row) for row in store_rows],
+        allergies=[row_to_dict(row) for row in allergy_rows],
         config=_get_config(conn),
     )
 
@@ -83,6 +93,13 @@ def patch_settings(payload: SettingsPatch, conn=Depends(get_db)):
             cursor.execute(
                 "UPDATE store_toggles SET enabled = ? WHERE store = ?",
                 (enabled, store),
+            )
+
+    if payload.allergies:
+        for allergy, enabled in payload.allergies.items():
+            cursor.execute(
+                "UPDATE allergens SET enabled = ? WHERE allergy = ?",
+                (enabled, allergy),
             )
 
     if payload.postal_code is not None:
@@ -107,9 +124,13 @@ def patch_settings(payload: SettingsPatch, conn=Depends(get_db)):
     conn.commit()
 
     cursor.execute("SELECT store, enabled FROM store_toggles")
-    rows = cursor.fetchall()
+    store_rows = cursor.fetchall()
+
+    cursor.execute("SELECT allergy, enabled FROM allergens")
+    allergy_rows = cursor.fetchall()
 
     return SettingsResponse(
-        stores=[row_to_dict(row) for row in rows],
+        stores=[row_to_dict(row) for row in store_rows],
+        allergies=[row_to_dict(row) for row in allergy_rows],
         config=_get_config(conn),
     )
