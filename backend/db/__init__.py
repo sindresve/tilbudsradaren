@@ -94,21 +94,10 @@ def init_db():
         VALUES (?, 1)
         """, (allergy,))
 
-
-
-    cursor.execute("""
-    INSERT OR IGNORE INTO settings (id)
-    VALUES (1)
-    """)
-
-
-
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS staples (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        alert_threshold REAL
+        name TEXT NOT NULL UNIQUE
     )
     """)
 

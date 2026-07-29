@@ -284,7 +284,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     newOffers: { enabled: boolean; channels: Channel[] };
     weeklyDigest: { enabled: boolean; channels: Channel[] };
     stockAlerts: { enabled: boolean; channels: Channel[] };
-    dryGoodsAlerts: { enabled: boolean; channels: Channel[] };
+    staplesAlerts: { enabled: boolean; channels: Channel[] };
     dashboardNewOffers: { enabled: boolean; channels: Channel[] };
     bestDealsWeekly: { enabled: boolean; channels: Channel[] };
     favoriteFoodAlerts: { enabled: boolean; channels: Channel[] };
@@ -295,7 +295,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     newOffers: { enabled: true, channels: ['discord', 'email'] },
     weeklyDigest: { enabled: false, channels: [] },
     stockAlerts: { enabled: false, channels: [] },
-    dryGoodsAlerts: { enabled: true, channels: ['email'] },
+    staplesAlerts: { enabled: true, channels: ['email'] },
     dashboardNewOffers: { enabled: true, channels: [] },
     bestDealsWeekly: { enabled: true, channels: ['discord'] },
     favoriteFoodAlerts: { enabled: true, channels: ['email'] },
@@ -327,28 +327,15 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
   const [savedAllergies, setSavedAllergies] = useState<AllergiesState>({});
 
   // ---------------- SHOPPING LIST STATE ----------------
-  const initialDryGoods = ['Ris', 'Mel', 'Sukker', 'Havregryn'];
-  const initialFavoriteFoods = ['Kylling', 'Kjøttdeig'];
-
-  const [dryGoods, setDryGoods] = useState<string[]>(initialDryGoods);
-  const [savedDryGoods, setSavedDryGoods] = useState<string[]>(initialDryGoods);
-  const [favoriteFoods, setFavoriteFoods] = useState<string[]>(initialFavoriteFoods);
-  const [savedFavoriteFoods, setSavedFavoriteFoods] = useState<string[]>(initialFavoriteFoods);
+  const [staples, setStaples] = useState<string[]>([]);
+  const [savedStaples, setSavedStaples] = useState<string[]>([]);
 
   const addDryGood = (name: string) => {
-    if (dryGoods.some((g) => g.toLowerCase() === name.toLowerCase())) return;
-    setDryGoods((prev) => [...prev, name]);
+    if (staples.some((g) => g.toLowerCase() === name.toLowerCase())) return;
+    setStaples((prev) => [...prev, name]);
   };
   const removeDryGood = (name: string) => {
-    setDryGoods((prev) => prev.filter((g) => g !== name));
-  };
-
-  const addFavoriteFood = (name: string) => {
-    if (favoriteFoods.some((f) => f.toLowerCase() === name.toLowerCase())) return;
-    setFavoriteFoods((prev) => [...prev, name]);
-  };
-  const removeFavoriteFood = (name: string) => {
-    setFavoriteFoods((prev) => prev.filter((f) => f !== name));
+    setStaples((prev) => prev.filter((g) => g !== name));
   };
 
   // ---------------- CONFIGURATION STATE ----------------
@@ -389,9 +376,8 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
 
   const shoppingListDirty = useMemo(
     () =>
-      JSON.stringify(dryGoods) !== JSON.stringify(savedDryGoods) ||
-      JSON.stringify(favoriteFoods) !== JSON.stringify(savedFavoriteFoods),
-    [dryGoods, savedDryGoods, favoriteFoods, savedFavoriteFoods]
+      JSON.stringify(staples) !== JSON.stringify(savedStaples),
+    [staples, savedStaples]
   );
 
   const configDirty = useMemo(
@@ -467,11 +453,8 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       if (Object.keys(changedAllergies).length > 0) payload.allergies = changedAllergies;
     }
 
-    if (JSON.stringify(dryGoods) !== JSON.stringify(savedDryGoods)) {
-      payload.dryGoods = dryGoods;
-    }
-    if (JSON.stringify(favoriteFoods) !== JSON.stringify(savedFavoriteFoods)) {
-      payload.favoriteFoods = favoriteFoods;
+    if (JSON.stringify(staples) !== JSON.stringify(savedStaples)) {
+      payload.staples = staples;
     }
 
     const configFieldMap: Array<[string, unknown, unknown]> = [
@@ -508,20 +491,22 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     try {
       // Sync saved snapshots only for sections that were part of the payload
       if (payload.notifications) setSavedNotifications(notifications);
-      if (payload.stores || payload.geminiApiKey || payload.postalCode || payload.allergies) {
+      if (payload.stores || payload.geminiApiKey || payload.postalCode || payload.allergies || payload.staples) {
         const result = await patchSettings({
           ...(payload.stores ? { stores: payload.stores as Record<string, boolean> } : {}),
           ...(payload.allergies ? { allergies: payload.allergies as Record<string, boolean> } : {}),
+          ...(payload.staples ? { staples: payload.staples as string[] } : {}),
           ...(payload.geminiApiKey ? { gemini_api_key: payload.geminiApiKey as string } : {}),
           ...(payload.postalCode ? { postal_code: payload.postalCode as string } : {}),
         });
-        setPostalCode(result.config.postal_code)
+        setPostalCode(result.config.postal_code ?? '');
         setGeminiKeySet(result.config.gemini_api_key_set);
         setGeminiKeyPreview(result.config.gemini_api_key_preview);
+        setStaples(result.staples);
+        setSavedStaples(result.staples);
       }
       if (payload.allergies) setSavedAllergies(allergies);
-      if (payload.dryGoods) setSavedDryGoods(dryGoods);
-      if (payload.favoriteFoods) setSavedFavoriteFoods(favoriteFoods);
+      if (payload.staples) setSavedStaples(staples);
       if (payload.config) {
         setSavedWebhookUrl(webhookUrl);
         setSavedSmtpHost(smtpHost);
@@ -615,6 +600,9 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
         });
         setAllergies(allergiesMap);
         setSavedAllergies(allergiesMap);
+
+        setStaples(settings.staples);
+        setSavedStaples(settings.staples);
 
         setGeminiKeySet(settings.config.gemini_api_key_set);
         setGeminiKeyPreview(settings.config.gemini_api_key_preview);
@@ -746,10 +734,10 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                 <NotificationRow
                   title="Tørrvare-varsler"
                   description="Varsle når varer fra tørrvarelisten din er på tilbud"
-                  enabled={notifications.dryGoodsAlerts.enabled}
-                  onToggle={(v) => updateNotification('dryGoodsAlerts', { enabled: v })}
-                  channels={notifications.dryGoodsAlerts.channels}
-                  onChannelsChange={(c) => updateNotification('dryGoodsAlerts', { channels: c })}
+                  enabled={notifications.staplesAlerts.enabled}
+                  onToggle={(v) => updateNotification('staplesAlerts', { enabled: v })}
+                  channels={notifications.staplesAlerts.channels}
+                  onChannelsChange={(c) => updateNotification('staplesAlerts', { channels: c })}
                 />
                 <NotificationRow
                   title="Nye tilbud i dashbordet"
@@ -856,37 +844,17 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
               <div className="w-full">
                 <div className='w-full flex flex-row gap-10'>
                   <div className="max-w-md w-full">
-                    <SectionLabel>Tørrvarer du ofte kjøper</SectionLabel>
+                    <SectionLabel>Varer du ofte kjøper</SectionLabel>
                     <p className="text-xs text-[#9B958C] -mt-1 mb-3">
-                      Legg til varer som ris, mel og sukker, så varsler vi deg når de er på tilbud
+                      Legg til varer som ris, mel, melk og kylling, så varsler vi deg når de er på tilbud
                     </p>
                     <ListInput placeholder="F.eks. Ris" onAdd={addDryGood} />
                     <div className="mt-2">
-                      {dryGoods.length === 0 ? (
-                        <EmptyListHint text="Ingen tørrvarer lagt til enda" />
+                      {staples.length === 0 ? (
+                        <EmptyListHint text="Ingen varer lagt til enda" />
                       ) : (
-                        dryGoods.map((item) => (
+                        staples.map((item) => (
                           <ListItem key={item} label={item} onRemove={() => removeDryGood(item)} />
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  <div className="max-w-md w-full">
-                    <SectionLabel>Mat du liker</SectionLabel>
-                    <p className="text-xs text-[#9B958C] -mt-1 mb-3">
-                      F.eks. kylling eller kjøttdeig — brukes til favorittmat-varsler
-                    </p>
-                    <ListInput placeholder="F.eks. Kylling" onAdd={addFavoriteFood} />
-                    <div className="mt-2">
-                      {favoriteFoods.length === 0 ? (
-                        <EmptyListHint text="Ingen favorittmat lagt til enda" />
-                      ) : (
-                        favoriteFoods.map((item) => (
-                          <ListItem
-                            key={item}
-                            label={item}
-                            onRemove={() => removeFavoriteFood(item)}
-                          />
                         ))
                       )}
                     </div>

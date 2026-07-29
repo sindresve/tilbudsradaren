@@ -19,25 +19,26 @@ class AllergyToggle(BaseModel):
     allergy: str
     enabled: bool
 
+class StapleItem(BaseModel):
+    name: str
 
 class ConfigSettings(BaseModel):
     gemini_api_key_set: bool
     gemini_api_key_preview: Optional[str] = None
     postal_code: Optional[str] = None
 
-
 class SettingsResponse(BaseModel):
     stores: List[StoreToggle]
     allergies: List[AllergyToggle]
+    staples: List[str]
     config: ConfigSettings
-
 
 class SettingsPatch(BaseModel):
     stores: Optional[Dict[str, bool]] = None
     allergies: Optional[Dict[str, bool]] = None
+    staples: Optional[List[str]] = None
     gemini_api_key: Optional[str] = None
     postal_code: Optional[str] = None
-
 
 def _get_config(conn) -> ConfigSettings:
     cursor = conn.cursor()
@@ -77,9 +78,13 @@ def get_settings(conn=Depends(get_db)):
     cursor.execute("SELECT allergy, enabled FROM allergens")
     allergy_rows = cursor.fetchall()
 
+    cursor.execute("SELECT name FROM staples ORDER BY name")
+    staple_rows = cursor.fetchall()
+
     return SettingsResponse(
         stores=[row_to_dict(row) for row in store_rows],
         allergies=[row_to_dict(row) for row in allergy_rows],
+        staples=[row["name"] for row in staple_rows],
         config=_get_config(conn),
     )
 
@@ -94,13 +99,27 @@ def patch_settings(payload: SettingsPatch, conn=Depends(get_db)):
                 "UPDATE store_toggles SET enabled = ? WHERE store = ?",
                 (enabled, store),
             )
-
+            
     if payload.allergies:
         for allergy, enabled in payload.allergies.items():
             cursor.execute(
                 "UPDATE allergens SET enabled = ? WHERE allergy = ?",
                 (enabled, allergy),
             )
+
+    if payload.staples is not None:
+        cursor.execute("SELECT name FROM staples")
+        existing = {row["name"] for row in cursor.fetchall()}
+        incoming = set(payload.staples)
+
+        to_add = incoming - existing
+        to_remove = existing - incoming
+
+        for name in to_add:
+            cursor.execute("INSERT OR IGNORE INTO staples (name) VALUES (?)", (name,))
+
+        for name in to_remove:
+            cursor.execute("DELETE FROM staples WHERE name = ?", (name,))
 
     if payload.postal_code is not None:
         cursor.execute(
@@ -129,8 +148,12 @@ def patch_settings(payload: SettingsPatch, conn=Depends(get_db)):
     cursor.execute("SELECT allergy, enabled FROM allergens")
     allergy_rows = cursor.fetchall()
 
+    cursor.execute("SELECT name FROM staples ORDER BY name")
+    staple_rows = cursor.fetchall()
+
     return SettingsResponse(
         stores=[row_to_dict(row) for row in store_rows],
         allergies=[row_to_dict(row) for row in allergy_rows],
+        staples=[row["name"] for row in staple_rows],
         config=_get_config(conn),
     )

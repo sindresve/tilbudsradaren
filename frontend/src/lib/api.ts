@@ -11,6 +11,7 @@ export interface ConfigSettings {
 export interface SettingsResponse {
   stores: StoreToggle[];
   allergies: AllergyToggle[];
+  staples: [];
   config: ConfigSettings;
 }
 
