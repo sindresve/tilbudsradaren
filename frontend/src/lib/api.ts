@@ -2,6 +2,39 @@ import { Catalog, Product, StoreToggle } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+export interface ConfigSettings {
+  gemini_api_key_set: boolean;
+  gemini_api_key_preview: string | null;
+}
+
+export interface SettingsResponse {
+  stores: StoreToggle[];
+  config: ConfigSettings;
+}
+
+export interface SettingsPatchPayload {
+  stores?: Record<string, boolean>;
+  gemini_api_key?: string;
+}
+
+export async function getSettings(): Promise<SettingsResponse> {
+  const res = await fetch(`${API_URL}/api/settings`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load settings: ${res.status}`);
+  return res.json();
+}
+
+export async function patchSettings(
+  payload: SettingsPatchPayload
+): Promise<SettingsResponse> {
+  const res = await fetch(`${API_URL}/api/settings`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Failed to update settings: ${res.status}`);
+  return res.json();
+}
+
 export async function getProducts(
   store?: string,
   year?: number,

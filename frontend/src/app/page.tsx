@@ -3,15 +3,9 @@
 import { useEffect, useState } from "react";
 import { getProducts, getStores, getCatalogs } from "@/lib/api";
 import { Product, StoreToggle, Catalog } from "@/types";
+import { STORE_LABELS } from "@/lib/constants"
 import Navbar from "@/components/Navbar";
 import Modal from "@/components/SettingsModal";
-
-const STORE_LABELS: Record<string, string> = {
-  rema: "REMA 1000",
-  kiwi: "Kiwi",
-  coopExtra: "Coop Extra",
-  meny: "Meny"
-};
 
 function storeLabel(store: string): string {
   return STORE_LABELS[store] ?? store;
@@ -330,6 +324,9 @@ export default function Home() {
 
     const handleClose = () => {
       setSettingsModalOpen(false);
+      getStores()
+        .then((s) => setStores(s))
+        .catch(() => {});
     };
 
   const filtersActive =

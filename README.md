@@ -3,7 +3,7 @@ En app som skanner ukentlige tilbudsaviser fra lokale dagligvarekjeder og varsle
 
 ## Hvordan funker det?
 - Skanner tilbudsaviser hver uke fra butikkene som du har skrudd på varslinger for
-- Varsler deg når produkter du følger med på (ris, jylling, osv) dukker opp på tilbud
+- Varsler deg når produkter du følger med på (ris, kylling, osv) dukker opp på tilbud
 - Fin frontend hvor alt er samlet og oversiktlig
 
 ## Planlagt / kommer senere

@@ -3,6 +3,8 @@
 import { Bell, Plug, Plus, ShoppingBasket, SlidersHorizontal, Trash2, X, Circle, Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { getSettings, patchSettings } from '@/lib/api';
+import { STORE_LABELS } from "@/lib/constants"
 
 interface ModalProps {
   isOpen: boolean;
@@ -313,10 +315,9 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
   };
 
   // ---------------- PREFERENCES STATE ----------------
-  type StoresState = { rema: boolean; kiwi: boolean; coopExtra: boolean; meny: boolean };
+  type StoresState = Record<string, boolean>;
   type AllergiesState = { gluten: boolean; laktose: boolean; nøtter: boolean; egg: boolean; skalldyr: boolean };
 
-  const initialStores: StoresState = { rema: true, kiwi: true, coopExtra: true, meny: false };
   const initialAllergies: AllergiesState = {
     gluten: false,
     laktose: false,
@@ -325,8 +326,11 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     skalldyr: false,
   };
 
-  const [stores, setStores] = useState<StoresState>(initialStores);
-  const [savedStores, setSavedStores] = useState<StoresState>(initialStores);
+  const [stores, setStores] = useState<StoresState>({});
+  const [savedStores, setSavedStores] = useState<StoresState>({});
+  const [storesLoading, setStoresLoading] = useState(true);
+  const [storesLoadError, setStoresLoadError] = useState<string | null>(null);
+
   const [allergies, setAllergies] = useState<AllergiesState>(initialAllergies);
   const [savedAllergies, setSavedAllergies] = useState<AllergiesState>(initialAllergies);
 
@@ -357,7 +361,8 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
 
   // ---------------- CONFIGURATION STATE ----------------
   const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [savedGeminiApiKey, setSavedGeminiApiKey] = useState('');
+  const [geminiKeySet, setGeminiKeySet] = useState(false);
+  const [geminiKeyPreview, setGeminiKeyPreview] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [savedWebhookUrl, setSavedWebhookUrl] = useState('');
   const [smtpHost, setSmtpHost] = useState('');
@@ -401,7 +406,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
 
   const configDirty = useMemo(
     () =>
-      geminiApiKey !== savedGeminiApiKey ||
+      geminiApiKey !== '' ||
       webhookUrl !== savedWebhookUrl ||
       smtpHost !== savedSmtpHost ||
       smtpPort !== savedSmtpPort ||
@@ -413,7 +418,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       budgetAmount !== savedBudgetAmount ||
       budgetPeriod !== savedBudgetPeriod,
     [
-      geminiApiKey, savedGeminiApiKey,
+      geminiApiKey,
       webhookUrl, savedWebhookUrl,
       smtpHost, savedSmtpHost,
       smtpPort, savedSmtpPort,
@@ -456,6 +461,10 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
       }
     }
 
+    if (geminiApiKey !== '') {
+      payload.geminiApiKey = geminiApiKey;
+    }
+
     // stores: only changed store keys
     if (JSON.stringify(stores) !== JSON.stringify(savedStores)) {
       const changedStores: Partial<StoresState> = {};
@@ -484,7 +493,6 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
 
     // config: only changed individual fields
     const configFieldMap: Array<[string, unknown, unknown]> = [
-      ['geminiApiKey', geminiApiKey, savedGeminiApiKey],
       ['webhookUrl', webhookUrl, savedWebhookUrl],
       ['smtpHost', smtpHost, savedSmtpHost],
       ['smtpPort', smtpPort, savedSmtpPort],
@@ -517,21 +525,24 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     setIsSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`Lagring feilet (${res.status})`);
+      if (payload.stores) {
+        await patchSettings({ stores: payload.stores as Record<string, boolean> });
+      }
 
       // Sync saved snapshots only for sections that were part of the payload
       if (payload.notifications) setSavedNotifications(notifications);
-      if (payload.stores) setSavedStores(stores);
+      if (payload.stores || payload.geminiApiKey) {
+        const result = await patchSettings({
+          ...(payload.stores ? { stores: payload.stores as Record<string, boolean> } : {}),
+          ...(payload.geminiApiKey ? { gemini_api_key: payload.geminiApiKey as string } : {}),
+        });
+        setGeminiKeySet(result.config.gemini_api_key_set);
+        setGeminiKeyPreview(result.config.gemini_api_key_preview);
+      }
       if (payload.allergies) setSavedAllergies(allergies);
       if (payload.dryGoods) setSavedDryGoods(dryGoods);
       if (payload.favoriteFoods) setSavedFavoriteFoods(favoriteFoods);
       if (payload.config) {
-        setSavedGeminiApiKey(geminiApiKey);
         setSavedWebhookUrl(webhookUrl);
         setSavedSmtpHost(smtpHost);
         setSavedSmtpPort(smtpPort);
@@ -543,6 +554,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
         setSavedBudgetAmount(budgetAmount);
         setSavedBudgetPeriod(budgetPeriod);
       }
+      if (payload.geminiApiKey) setGeminiApiKey('');
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Ukjent feil ved lagring');
     } finally {
@@ -600,6 +612,73 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    setStoresLoading(true);
+    setStoresLoadError(null);
+
+    getSettings()
+      .then((settings) => {
+        if (cancelled) return;
+        const storesMap: StoresState = {};
+        settings.stores.forEach((s) => {
+          storesMap[s.store] = Boolean(s.enabled);
+        });
+        setStores(storesMap);
+        setSavedStores(storesMap);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setStoresLoadError(
+          err instanceof Error ? err.message : 'Klarte ikke å hente innstillinger'
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setStoresLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    setStoresLoading(true);
+    setStoresLoadError(null);
+
+    getSettings()
+      .then((settings) => {
+        if (cancelled) return;
+        const storesMap: StoresState = {};
+        settings.stores.forEach((s) => {
+          storesMap[s.store] = Boolean(s.enabled);
+        });
+        setStores(storesMap);
+        setSavedStores(storesMap);
+
+        setGeminiKeySet(settings.config.gemini_api_key_set);
+        setGeminiKeyPreview(settings.config.gemini_api_key_preview);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setStoresLoadError(
+          err instanceof Error ? err.message : 'Klarte ikke å hente innstillinger'
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setStoresLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+  
   if (!isOpen) return null;
 
   const tabs = [
@@ -756,30 +835,23 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                     <p className="text-xs text-[#9B958C] -mt-1 mb-2">
                       Skru av/på butikker som er/ikke er i næromerådet ditt
                     </p>
-                    <SettingRow title="REMA 1000">
-                      <Toggle
-                        checked={stores.rema}
-                        onChange={(v) => setStores((s) => ({ ...s, rema: v }))}
-                      />
-                    </SettingRow>
-                    <SettingRow title="Kiwi">
-                      <Toggle
-                        checked={stores.kiwi}
-                        onChange={(v) => setStores((s) => ({ ...s, kiwi: v }))}
-                      />
-                    </SettingRow>
-                    <SettingRow title="Coop Extra">
-                      <Toggle
-                        checked={stores.coopExtra}
-                        onChange={(v) => setStores((s) => ({ ...s, coopExtra: v }))}
-                      />
-                    </SettingRow>
-                    <SettingRow title="Meny">
-                      <Toggle
-                        checked={stores.meny}
-                        onChange={(v) => setStores((s) => ({ ...s, meny: v }))}
-                      />
-                    </SettingRow>
+                    {storesLoading && (
+                      <p className="text-xs text-[#6B655D] py-2">Henter butikker …</p>
+                    )}
+                    {storesLoadError && !storesLoading && (
+                      <p className="text-xs text-[#C0554A] py-2">{storesLoadError}</p>
+                    )}
+                    {!storesLoading && !storesLoadError && Object.keys(stores).length === 0 && (
+                      <p className="text-xs text-[#6B655D] py-2">Ingen butikker funnet.</p>
+                    )}
+                    {Object.entries(stores).map(([storeKey, enabled]) => (
+                      <SettingRow key={storeKey} title={STORE_LABELS[storeKey] ?? storeKey}>
+                        <Toggle
+                          checked={enabled}
+                          onChange={(v) => setStores((s) => ({ ...s, [storeKey]: v }))}
+                        />
+                      </SettingRow>
+                    ))}
                   </div>
                   <div className="max-w-md w-full">
                     <SectionLabel>Allergier og hensyn</SectionLabel>
@@ -876,8 +948,13 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
                     <p className="text-xs text-[#9B958C] -mt-1 mb-2">
                       Brukes til å tolke og kategorisere tilbud automatisk
                     </p>
+                    {geminiKeySet && (
+                      <p className="text-xs text-[#6B655D] mb-2">
+                        Lagret nøkkel: <span className="font-mono">{geminiKeyPreview}</span>
+                      </p>
+                    )}
                     <TextField
-                      label="API-nøkkel"
+                      label={geminiKeySet ? 'Ny API-nøkkel (erstatter gjeldende)' : 'API-nøkkel'}
                       placeholder="AIza..."
                       value={geminiApiKey}
                       onChange={setGeminiApiKey}

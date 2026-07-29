@@ -1,17 +1,17 @@
 import os
 import shutil
 from pathlib import Path
-from dotenv import load_dotenv
 
 from tilbud_scraper import process_catalog
 from utils import (get_pos, get_current_datetime, save_catalog)
 from stores import get_url
 from db import init_db, KNOWN_STORES
 from db.database import get_connection
+from api.gemini_key import get_gemini_api_key
 
-load_dotenv()
-
-gemini_api_key = os.getenv("GEMINI_API_KEY")
+gemini_api_key = get_gemini_api_key()
+if gemini_api_key is None:
+    raise RuntimeError("Ingen Gemini API nøkkel funnet, sett nøkkelen i innstillinger først")
 
 
 class TilbudsRadaren:

@@ -5,6 +5,16 @@ DB_PATH = Path(__file__).resolve().parent / "tilbudsradar.db"
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(
+        DB_PATH,
+        check_same_thread=False,
+        timeout=10
+    )
+    conn.row_factory = sqlite3.Row
+    return conn
+    conn = sqlite3.connect(
+        DB_PATH,
+        check_same_thread=False
+    )
     conn.row_factory = sqlite3.Row
     return conn

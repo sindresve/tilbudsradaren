@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import catalogs, health, products, stores
+from .routers import catalogs, health, products, stores, settings
 
-app = FastAPI(title="Discount Catalog API")
+app = FastAPI(title="Tilbudsradaren API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,3 +16,4 @@ app.include_router(products.router)
 app.include_router(stores.router)
 app.include_router(catalogs.router)
 app.include_router(health.router)
+app.include_router(settings.router)

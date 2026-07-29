@@ -7,6 +7,7 @@ from typing import Optional
 from pathlib import Path
 from db.models import (create_catalog, save_products)
 from db import KNOWN_STORES
+from api.gemini_key import get_gemini_api_key
 
 from google import genai
 from google.genai import types
@@ -189,7 +190,10 @@ def _load_image_bytes(image_path: str) -> tuple[bytes, str]:
 
 
 def extract_products_from_image(image_path: str, api_key: Optional[str] = None, model: str = "gemini-3.1-flash-lite", store: Optional[str] = None) -> list[dict]:
-    key = api_key or os.environ.get("GEMINI_API_KEY")
+    key = get_gemini_api_key()
+    if key is None:
+        raise RuntimeError("Ingen Gemini API nøkkel funnet, sett nøkkelen i innstillinger først")
+    
     if not key:
         raise ValueError(
             "Mangler API-nøkkel. Sett miljøvariabelen GEMINI_API_KEY eller send inn api_key=..."
