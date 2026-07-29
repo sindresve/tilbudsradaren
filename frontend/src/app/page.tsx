@@ -6,6 +6,7 @@ import { Product, StoreToggle, Catalog } from "@/types";
 import { STORE_LABELS } from "@/lib/constants"
 import Navbar from "@/components/Navbar";
 import Modal from "@/components/SettingsModal";
+import ProductModal from "@/components/ProductModal";
 
 function storeLabel(store: string): string {
   return STORE_LABELS[store] ?? store;
@@ -68,12 +69,15 @@ export default function Home() {
   const [stores, setStores] = useState<StoreToggle[]>([]);
   const [availableWeeks, setAvailableWeeks] = useState<Catalog[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<{ year: number; week: number } | null>(null);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
+  // Modals
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product>(products[0]);
+  
   // Sidebar filters
   const [selectedStores, setSelectedStores] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
-  const [postalCode, setPostalCode] = useState<string>("1234")
   const [minPrice, setMinPrice] = useState<string>("");
   const [maxPrice, setMaxPrice] = useState<string>("");
 
@@ -329,6 +333,15 @@ export default function Home() {
         .catch(() => {});
     };
 
+    const handleOpenProductModal = (product: Product) => {
+      setProductModalOpen(true);
+      setSelectedProduct(product)
+    };
+    
+    const handleCloseProductModal = () => {
+      setProductModalOpen(false);
+    };
+
   const filtersActive =
     minPrice ||
     maxPrice ||
@@ -339,6 +352,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#f6f3ec] text-[#1c1a16]">
       <Navbar setModalOpen={handleOpen} />
       <Modal isOpen={settingsModalOpen} onClose={handleClose} />
+      <ProductModal isOpen={productModalOpen} onClose={handleCloseProductModal} p={selectedProduct} />
       <div className="mx-auto max-w-6xl px-6 py-8 sm:px-10">
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left sidebar */}
@@ -548,7 +562,8 @@ export default function Home() {
                   return (
                     <div
                       key={p.id}
-                      className="group relative overflow-hidden rounded-lg border border-[#1c1a16]/10 bg-white px-4 py-4 shadow-sm transition-shadow hover:shadow-md"
+                      onClick={() => handleOpenProductModal(p)}
+                      className="group relative overflow-hidden cursor-pointer rounded-lg border border-[#1c1a16]/10 bg-white px-4 py-4 shadow-sm transition-shadow hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
