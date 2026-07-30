@@ -7,11 +7,8 @@ from utils import (get_pos, get_current_datetime, save_catalog)
 from stores import get_url
 from db import init_db, KNOWN_STORES
 from db.database import get_connection
-from backend.api.utils.gemini_key import get_gemini_api_key
-
-gemini_api_key = get_gemini_api_key()
-if gemini_api_key is None:
-    raise RuntimeError("Ingen Gemini API nøkkel funnet, sett nøkkelen i innstillinger først")
+from api.utils.gemini_key import get_gemini_api_key
+from api.utils.product_monitor import ProductMonitor
 
 
 class TilbudsRadaren:
@@ -22,6 +19,9 @@ class TilbudsRadaren:
         self.info = info
 
     def run(self):
+        gemini_api_key = get_gemini_api_key()
+        if gemini_api_key is None:
+            raise RuntimeError("Ingen Gemini API nøkkel funnet, sett nøkkelen i innstillinger først")
         self.scan_stores(self.postalcode)
 
     def scan_stores(self, postalcode):
@@ -80,9 +80,11 @@ def main():
     radar.run()
 
     process_catalog(info=info)
-
     cleanup_data_dir()
 
+    monitor = ProductMonitor()
+    monitor.run()
+    
 
 if __name__=="__main__":
     main()

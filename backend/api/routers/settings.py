@@ -7,6 +7,7 @@ from ..utils.crypto_utils import CryptoConfigError, encrypt_value, mask_value
 from ..utils.deps import get_db
 from ..utils.gemini_key import get_gemini_api_key
 from ..utils.utils import row_to_dict
+from api.utils.notifications import send_discord_message, send_email
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -227,10 +228,10 @@ def patch_settings(payload: SettingsPatch, conn=Depends(get_db)):
     )
 
 def send_discord_test(webhook_url):
-    print(webhook_url)
+    send_discord_message("Dette er en test melding!", webhook_url)
 
-def send_email_test(host, port, username, password, to):
-    print(host, port, username, password, to)
+def send_email_test(smtp_settings: dict[str, str]):
+    send_email("Dette er en test mail!", "Test", smtp_settings)
 
 class TestNotificationRequest(BaseModel):
     channel: str  # "email" or "discord"
@@ -244,6 +245,7 @@ def test_notification(payload: TestNotificationRequest, conn=Depends(get_db)):
         "FROM settings WHERE id = 1"
     )
     row = cursor.fetchone()
+    smtp_settings = {"host": row["smtp_host"], "port": row["smtp_port"], "username": row["smtp_username"], "password": row["smtp_password"], "email_to": row["email_to"]}
 
     if payload.channel == "discord":
         if not row or not row["discord_webhook_url"]:
@@ -257,13 +259,7 @@ def test_notification(payload: TestNotificationRequest, conn=Depends(get_db)):
         if not row or not row["smtp_host"] or not row["email_to"]:
             raise HTTPException(status_code=400, detail="SMTP eller mottaker-e-post er ikke konfigurert")
         try:
-            send_email_test(
-                host=row["smtp_host"],
-                port=row["smtp_port"],
-                username=row["smtp_username"],
-                password=row["smtp_password"],
-                to=row["email_to"],
-            )
+            send_email_test(smtp_settings)
         except Exception as exc:
             raise HTTPException(status_code=502, detail=f"Klarte ikke å sende e-post: {exc}") from exc
 
