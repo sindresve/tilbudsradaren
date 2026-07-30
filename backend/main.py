@@ -7,7 +7,7 @@ from utils import (get_pos, get_current_datetime, save_catalog)
 from stores import get_url
 from db import init_db, KNOWN_STORES
 from db.database import get_connection
-from api.gemini_key import get_gemini_api_key
+from backend.api.utils.gemini_key import get_gemini_api_key
 
 gemini_api_key = get_gemini_api_key()
 if gemini_api_key is None:
@@ -21,8 +21,8 @@ class TilbudsRadaren:
         self.postalcode = postalcode
         self.info = info
 
-        init_db()
-        self.scan_stores(postalcode)
+    def run(self):
+        self.scan_stores(self.postalcode)
 
     def scan_stores(self, postalcode):
         print(f"Scanner {len(self.stores)} butikker")
@@ -76,11 +76,8 @@ def main():
     if not postal_code:
         raise RuntimeError("Ingen postnummer satt i innstillinger")
 
-    TilbudsRadaren(
-        enabled_stores,
-        postal_code,
-        info
-    )
+    radar = TilbudsRadaren(enabled_stores, postal_code, info)
+    radar.run()
 
     process_catalog(info=info)
 

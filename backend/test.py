@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+DISCORD_WEBHOOK_URL = "https://discordapp.com/api/webhooks/1532111359448453141/vbLl4VwC27KPCjWI5XRhLilugqkJg6qq9tBom5XE5P3iSz7W2PUEJDPtWraTDCkgkCwT"
 
 
 def send_discord_message(content: str, webhook_url: Optional[str] = None) -> None:

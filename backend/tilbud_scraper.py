@@ -7,7 +7,7 @@ from typing import Optional
 from pathlib import Path
 from db.models import (create_catalog, save_products)
 from db import KNOWN_STORES
-from api.gemini_key import get_gemini_api_key
+from backend.api.utils.gemini_key import get_gemini_api_key
 
 from google import genai
 from google.genai import types

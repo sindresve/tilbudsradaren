@@ -2,8 +2,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends
 
-from ..deps import get_db
-from ..utils import row_to_dict
+from ..utils.deps import get_db
+from ..utils.utils import row_to_dict
 
 router = APIRouter(prefix="/api/catalogs", tags=["catalogs"])
 

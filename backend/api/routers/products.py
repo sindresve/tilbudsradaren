@@ -2,8 +2,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from ..deps import get_db
-from ..utils import current_year_week, row_to_dict
+from ..utils.deps import get_db
+from ..utils.utils import current_year_week, row_to_dict
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 

@@ -3,10 +3,10 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from ..crypto_utils import CryptoConfigError, encrypt_value, mask_value
-from ..deps import get_db
-from ..gemini_key import get_gemini_api_key
-from ..utils import row_to_dict
+from ..utils.crypto_utils import CryptoConfigError, encrypt_value, mask_value
+from ..utils.deps import get_db
+from ..utils.gemini_key import get_gemini_api_key
+from ..utils.utils import row_to_dict
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
