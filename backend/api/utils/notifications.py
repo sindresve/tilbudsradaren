@@ -1,5 +1,51 @@
 from typing import Optional
 import requests
+import smtplib
+from email.message import EmailMessage
+from email.utils import formatdate, make_msgid
+
+def send_email(content: str, title: str, smtp_settings: dict[str, str]):
+    try:
+        SMTP_HOST = smtp_settings["host"]
+        SMTP_PORT = smtp_settings["port"]
+
+        USERNAME = smtp_settings["username"]
+        PASSWORD = smtp_settings["password"]
+
+        msg = EmailMessage()
+        msg["Subject"] = title
+        msg["From"] = "Tilbuds Radaren"
+        msg["To"] = smtp_settings["email_to"]
+        msg["Date"] = formatdate(localtime=True)
+        msg["Message-ID"] = make_msgid()
+
+        msg.set_content(content)
+
+        msg.add_alternative(f"""
+        <html>
+        <body>
+        <h2>TilbudsRadaren</h2>
+        <p>{content}</p>
+        </body>
+        </html>
+        """.format(content), subtype="html")
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+            smtp.starttls()
+            smtp.login(USERNAME, PASSWORD)
+            smtp.send_message(msg)
+
+    except KeyError as e:
+        raise RuntimeError(f"Missing SMTP setting: {e.args[0]}") from e
+
+    except smtplib.SMTPException as e:
+        raise RuntimeError(f"Failed to send email: {e}") from e
+
+    except OSError as e:
+        raise RuntimeError(f"Failed to connect to SMTP server: {e}") from e
+
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error while sending email: {e}") from e
 
 def send_discord_message(content: str, webhook_url: Optional[str] = None) -> None:
     """Sends a simple text message to a discord webhook"""
@@ -12,7 +58,7 @@ def send_discord_message(content: str, webhook_url: Optional[str] = None) -> Non
     if len(content) > 2000:
         content = content[:1985] + "\n…(kuttet)"
 
-    response = requests.post(url, json={"content": content})
+    response = requests.post(webhook_url, json={"content": content})
     response.raise_for_status()
     
 def send_discord_embed(title: str, description: str, fields: list[dict], webhook_url: Optional[str] = None) -> None:
@@ -60,10 +106,10 @@ def format_price(value: Optional[float]) -> str:
     return f"{value:.2f} kr"
 
 
-def notify_matching_products(products: list[dict], watch_term: str) -> None:
+def notify_matching_products(products: list[dict], watch_term: str, webhook_url: str) -> None:
     """
     Sender et varsel om produkter som matcher et overvåket søkeord (f.eks. "ris", "mel").
-    Hvert element i products forventes å ha: product_name, store, current_price,
+    Hvert element i products forventes å ha: name, store, current_price,
     old_price, discount_percent, package_size.
     """
     if not products:
@@ -78,7 +124,7 @@ def notify_matching_products(products: list[dict], watch_term: str) -> None:
             price_line += f" (-{p['discount_percent']:.0f}%)"
 
         fields.append({
-            "name": f"{p.get('product_name', 'Ukjent')} · {p.get('store', '')}",
+            "name": f"{p.get('name', 'Ukjent')} · {p.get('store', '')}",
             "value": f"{price_line}\n{p.get('package_size') or ''}".strip(),
             "inline": True,
         })
@@ -87,4 +133,5 @@ def notify_matching_products(products: list[dict], watch_term: str) -> None:
         title=f"🔔 Tilbud på \"{watch_term}\"",
         description=f"Fant {len(products)} treff denne uken:",
         fields=fields,
+        webhook_url=webhook_url
     )

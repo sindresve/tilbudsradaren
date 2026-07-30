@@ -18,7 +18,7 @@ from typing import Optional
 
 from cryptography.fernet import InvalidToken
 
-from .utils import decrypt_value
+from .crypto_utils import decrypt_value
 from db.database import get_connection
 
 
