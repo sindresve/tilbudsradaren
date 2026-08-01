@@ -577,6 +577,7 @@ export default function Modal({ isOpen, onClose }: ModalProps) {
         setGeminiKeyPreview(result.config.gemini_api_key_preview);
         setStaples(result.staples);
         setSavedStaples(result.staples);
+        setSavedStores(stores);
       }
       if (payload.allergies) setSavedAllergies(allergies);
       if (payload.staples) setSavedStaples(staples);

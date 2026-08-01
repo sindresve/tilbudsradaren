@@ -1,6 +1,7 @@
 from db.database import get_connection
 
 KNOWN_STORES = {
+    "europris": "image",
     "rema": "image",
     "kiwi": "pdf",
     "coopExtra": "pdf",

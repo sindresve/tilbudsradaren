@@ -3,8 +3,9 @@ import requests
 from stores.coop_extra import get_coop_extra_url
 from stores.kiwi import get_kiwi_url
 from stores.rema import get_rema_url
+from stores.europris import get_europris_url
 
-# Konverterer postnummerne til unike id-koder for den nåværende butikken
+# Convert postalcode to unique id-codes for the current store
 def convert_postalcode(postalcode, pos):
     url = f"https://www.coop.no/api/client/stores/search?language=nb-NO&query={postalcode}&chain=extra&latitude={pos.lat}&longitude={pos.lon}"
     response = requests.get(url)
@@ -23,5 +24,7 @@ def get_url(store, postalcode, pos):
         return get_rema_url()
     elif store == "meny":
         return "https://kundeavis.meny.no/GetPDF.ashx"
+    elif store == "europris":
+        return get_europris_url()
     else:
         raise ValueError(f"Ukjent butikk: {store}")
