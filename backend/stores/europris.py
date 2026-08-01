@@ -27,7 +27,6 @@ def get_europris_url():
     match = re.search(r'publicationId\s*=\s*"([a-f0-9]+)"', resp.text)
     if match:
         publication_id = match.group(1)
-        print(publication_id)
         return get_image_urls(publication_id)
     else:
         raise ValueError("Fant ikke catalog_id for Europris")

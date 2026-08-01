@@ -1,4 +1,3 @@
-import os
 import shutil
 from pathlib import Path
 
@@ -31,8 +30,6 @@ class TilbudsRadaren:
             print( f"Scanner {store}")
 
             content = get_url(store,postalcode,self.pos)
-            print(content)
-
             save_catalog(content, KNOWN_STORES[store], store, self.info)
 
 

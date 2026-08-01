@@ -3,7 +3,7 @@ import requests
 import chompjs
 from bs4 import BeautifulSoup
 
-def get_coop_extra_url(postalId):
+def get_coop_url(postalId):
     url = f"https://kundeavis.coop.no/aviser/?id={postalId}#popup-index"
     response = requests.get(url)
     response.raise_for_status()
