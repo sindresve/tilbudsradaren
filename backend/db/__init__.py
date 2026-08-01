@@ -7,7 +7,8 @@ KNOWN_STORES = {
     "coopExtra": "pdf",
     "coopPrix": "pdf",
     "meny": "pdf",
-    "joker": "image"
+    "joker": "image",
+    "spar": "pdf"
 }
 
 ALLERGIES = ["gluten", "laktose", "nøtter", "egg", "skalldyr"]

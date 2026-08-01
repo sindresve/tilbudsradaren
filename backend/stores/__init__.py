@@ -5,6 +5,8 @@ from stores.kiwi import get_kiwi_url
 from stores.rema import get_rema_url
 from stores.europris import get_europris_url
 from stores.joker import get_joker_url
+from stores.spar import get_spar_url
+from stores.bunnpris import get_bunnpris_url
 
 # Convert postalcode to unique id-codes for the current store
 def convert_postalcode(postalcode, pos, store):
@@ -32,5 +34,9 @@ def get_url(store, postalcode, pos):
         return get_europris_url()
     elif store == "joker":
         return get_joker_url(postalcode)
+    elif store == "spar":
+        return get_spar_url()
+    elif store == "bunnpris":
+        return get_bunnpris_url(pos)
     else:
         raise ValueError(f"Ukjent butikk: {store}")

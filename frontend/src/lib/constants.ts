@@ -5,5 +5,6 @@ export const STORE_LABELS: Record<string, string> = {
   coopPrix: "Coop Prix",
   meny: "Meny",
   europris: "Europris",
-  joker: "Joker"
+  joker: "Joker",
+  spar: "Spar"
 };
