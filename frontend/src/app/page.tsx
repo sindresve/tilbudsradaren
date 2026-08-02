@@ -7,6 +7,7 @@ import { STORE_LABELS } from "@/lib/constants"
 import Navbar from "@/components/Navbar";
 import Modal from "@/components/SettingsModal";
 import ProductModal from "@/components/ProductModal";
+import { RotateCcw } from "lucide-react";
 
 function storeLabel(store: string): string {
   return STORE_LABELS[store] ?? store;
@@ -357,9 +358,25 @@ export default function Home() {
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left sidebar */}
           <aside className="shrink-0 lg:w-64 flex flex-col gap-2">
-            <div className="rounded-xl border border-[#1c1a16]/10 bg-white p-5 max-h-[70vh]">
-              <h3 className="text-sm font-semibold">Butikker</h3>
-              <div className="mt-3 flex flex-col gap-2 max-h-[33vh] overflow-y-scroll custom-scrollbar pb-2">
+            <div className="rounded-xl relative border border-[#1c1a16]/10 bg-white p-5 pt-3.5 h-full max-h-[70vh] flex flex-col">
+              <div className="flex items-center justify-between h-7">
+                <h3 className="text-sm font-semibold">Butikker</h3>
+                {filtersActive && (
+                  <button
+                    onClick={() => {
+                      setMinPrice("");
+                      setMaxPrice("");
+                      setSelectedCategories(new Set(categories));
+                      setSelectedStores(new Set(stores.filter((s) => s.enabled).map((s) => s.store)));
+                    }}
+                    title="Nullstill filtre"
+                    className="rounded-full p-1.5 cursor-pointer hover:bg-[#1c1a16]/5 transition-colors"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 flex flex-col gap-2 max-h-[29.5vh] overflow-y-scroll custom-scrollbar pb-2">
                 {stores.map((s) => (
                   <label
                     key={s.store}
@@ -403,40 +420,28 @@ export default function Home() {
                 )}
               </div>
 
-              <h3 className="mt-6 text-sm font-semibold">Pris</h3>
-              <div className="mt-3 flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  placeholder="Min"
-                  className="w-full rounded-lg border border-[#1c1a16]/15 px-2 py-1.5 text-sm placeholder:text-[#1c1a16]/35 focus:border-[#1c1a16]/40 focus:outline-none"
-                />
-                <span className="text-[#1c1a16]/30">–</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="Max"
-                  className="w-full rounded-lg border border-[#1c1a16]/15 px-2 py-1.5 text-sm placeholder:text-[#1c1a16]/35 focus:border-[#1c1a16]/40 focus:outline-none"
-                />
+              <div className="mt-auto">
+                <h3 className="text-sm font-semibold">Pris</h3>
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    placeholder="Min"
+                    className="w-full rounded-lg border border-[#1c1a16]/15 px-2 py-1.5 text-sm placeholder:text-[#1c1a16]/35 focus:border-[#1c1a16]/40 focus:outline-none"
+                  />
+                  <span className="text-[#1c1a16]/30">–</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    placeholder="Max"
+                    className="w-full rounded-lg border border-[#1c1a16]/15 px-2 py-1.5 text-sm placeholder:text-[#1c1a16]/35 focus:border-[#1c1a16]/40 focus:outline-none"
+                  />
+                </div>
               </div>
-
-              {filtersActive && (
-                <button
-                  onClick={() => {
-                    setMinPrice("");
-                    setMaxPrice("");
-                    setSelectedCategories(new Set(categories));
-                    setSelectedStores(new Set(stores.filter((s) => s.enabled).map((s) => s.store)));
-                  }}
-                  className="mt-4 text-xs font-medium text-[#8a5a3d] hover:underline"
-                >
-                  Nullstill filtre
-                </button>
-              )}
             </div>
             <div className="rounded-xl border border-[#1c1a16]/10 bg-white p-5">
               <h3 className="text-sm font-semibold">Info</h3>
