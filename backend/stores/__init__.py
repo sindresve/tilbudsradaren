@@ -9,7 +9,7 @@ from stores.spar import get_spar_url
 from stores.bunnpris import get_bunnpris_url
 from stores.meny import get_meny_url
 
-def convert_postalcode(postalcode, pos, chain):
+def get_coop_id(postalcode, pos, chain):
     url = "https://www.coop.no/api/client/stores/search"
     params = {
         "language": "nb-NO",
@@ -24,11 +24,16 @@ def convert_postalcode(postalcode, pos, chain):
 
     return data["stores"][0]["id"]
 
+coop_chains = {
+    "coopExtra": "extra",
+    "coopPrix": "prix",
+    "coopMega": "mega",
+}
+
 def get_url(store, postalcode, pos):
-    if store in ("coopExtra", "coopPrix"):
-        chain = "extra" if store == "coopExtra" else "prix"
-        postal_id = convert_postalcode(postalcode, pos, chain)
-        return get_coop_url(postal_id)
+    if store in coop_chains:
+        coop_id = get_coop_id(postalcode, pos, coop_chains[store])
+        return get_coop_url(coop_id)
     elif store == "kiwi":
         return get_kiwi_url(postalcode)
     elif store == "joker":

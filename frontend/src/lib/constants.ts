@@ -3,6 +3,7 @@ export const STORE_LABELS: Record<string, string> = {
   kiwi: "Kiwi",
   coopExtra: "Coop Extra",
   coopPrix: "Coop Prix",
+  coopMega: "Coop Mega",
   meny: "Meny",
   europris: "Europris",
   joker: "Joker",

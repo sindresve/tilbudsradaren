@@ -6,6 +6,7 @@ KNOWN_STORES = {
     "kiwi": "pdf",
     "coopExtra": "pdf",
     "coopPrix": "pdf",
+    "coopMega": "pdf",
     "meny": "pdf",
     "joker": "image",
     "spar": "pdf",

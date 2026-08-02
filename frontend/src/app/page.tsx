@@ -357,9 +357,9 @@ export default function Home() {
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left sidebar */}
           <aside className="shrink-0 lg:w-64 flex flex-col gap-2">
-            <div className="rounded-xl border border-[#1c1a16]/10 bg-white p-5">
+            <div className="rounded-xl border border-[#1c1a16]/10 bg-white p-5 max-h-[70vh]">
               <h3 className="text-sm font-semibold">Butikker</h3>
-              <div className="mt-3 flex flex-col gap-2">
+              <div className="mt-3 flex flex-col gap-2 max-h-[33vh] overflow-y-scroll custom-scrollbar pb-2">
                 {stores.map((s) => (
                   <label
                     key={s.store}
@@ -374,6 +374,9 @@ export default function Home() {
                     {storeLabel(s.store)} ({storeCounts.get(s.store) ?? 0})
                   </label>
                 ))}
+                {stores.length === 0 && (
+                  <p className="text-xs text-[#1c1a16]/40">Ingen butikker funnet.</p>
+                )}
                 {stores.length === 0 && (
                   <p className="text-xs text-[#1c1a16]/40">Ingen butikker funnet.</p>
                 )}
@@ -556,7 +559,7 @@ export default function Home() {
 
             {/* Product grid */}
             {!loading && !error && visibleProducts.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 overflow-y-scroll custom-scrollbar max-h-[calc(81vh-4px)] pb-4 p-0.5 pr-1">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 overflow-y-scroll custom-scrollbar max-h-[calc(81vh+4px)] pb-4 p-0.5 pr-1">
                 {visibleProducts.map((p) => {
                   const pct = effectiveDiscount(p);
                   return (

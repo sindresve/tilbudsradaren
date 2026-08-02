@@ -15,7 +15,7 @@ export default function Navbar({ setModalOpen }: NavBarProps) {
 
   return (
     <nav className="border-b-2 border-dashed border-[#1c1a16]/20 bg-[#f6f3ec] px-6 sm:px-10">
-      <div className="mx-auto flex max-w-7xl items-center justify-between py-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between py-4 h-15">
         <Link href="/" className="flex items-baseline gap-2 text-black">
           <span className="text-lg font-bold tracking-tight">Tilbudsradaren</span>
         </Link>
