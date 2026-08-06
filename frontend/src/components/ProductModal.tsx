@@ -2,7 +2,7 @@
 
 import { X, Package, Tag, Store } from "lucide-react";
 import { STORE_LABELS } from "@/lib/constants";
-import { Product } from "../types";
+import { Product } from "@/types";
 
 function storeLabel(store: string): string {
   return STORE_LABELS[store] ?? store;
