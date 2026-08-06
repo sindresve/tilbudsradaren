@@ -1,0 +1,26 @@
+{
+  "gode_kombinasjoner": {
+    "kylling": ["ris", "karri", "kokosmelk", "ingefær", "sitron", "hvitløk", "paprika", "poteter", "wokblanding", "spinat"],
+    "laks": ["dill", "sitron", "poteter", "asparges", "crème fraîche", "spinat", "brokkoli", "soyasaus", "ingefær"],
+    "torsk": ["bacon", "poteter", "gulrøtter", "purre", "smør", "sitron"],
+    "kjøttdeig": ["pasta", "tomat", "ost", "løk", "hvitløk", "paprika", "tacokrydder", "ris", "kål"],
+    "svinekjøtt": ["eple", "kål", "sennep", "poteter", "rødkål", "soyasaus", "ingefær"],
+    "lammekjøtt": ["hvitløk", "rosmarin", "poteter", "kål", "gulrøtter"],
+    "ribbe": ["surkål", "rødkål", "svisker", "poteter", "sennep"],
+    "scampi_reker": ["hvitløk", "sitron", "chili", "pasta", "smør", "persille"],
+    "pølser": ["potetmos", "sennep", "surkål", "løk", "brød"],
+    "kikerter_linser": ["karri", "kokosmelk", "spinat", "tomat", "ris", "hvitløk"],
+    "sopp": ["hvitløk", "fløte", "persille", "kylling", "pasta"],
+    "blomkål": ["karri", "ost", "smør", "gratinert"]
+  },
+  "unngå_kombinasjoner": [
+    ["fisk", "sterk chili"],
+    ["laks", "sterk tacokrydder"],
+    ["is", "kjøttdeig"],
+    ["frukt (søt)", "hvitløk i store mengder"],
+    ["melk/meieri", "sitrus i store mengder (kan skjære seg)"],
+    ["reker", "sjokolade"],
+    ["fiskeboller", "sterk karri"]
+  ],
+  "kommentar": "Dette er kun startpunkt-eksempler. Ikke uttømmende - utvid gjerne selv."
+}
