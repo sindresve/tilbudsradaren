@@ -9,10 +9,11 @@ interface NavBarProps {
   setModalOpen: () => void;
   setAiModalOpen: () => void;
   setShoppingListOpen: () => void;
+  itemsAmount: number;
 }
 
 
-export default function Navbar({ setModalOpen, setAiModalOpen, setShoppingListOpen }: NavBarProps) {
+export default function Navbar({ setModalOpen, setAiModalOpen, setShoppingListOpen, itemsAmount }: NavBarProps) {
   const pathname = usePathname();
 
   return (
@@ -35,7 +36,12 @@ export default function Navbar({ setModalOpen, setAiModalOpen, setShoppingListOp
             <Settings color="#000000" size={18} strokeWidth={1.25} className="group-hover:scale-110 duration-150 ease-in-out transition-transform" />
           </button>
           <button onClick={() => setShoppingListOpen()} className="p-1.5 cursor-pointer group">
-            <ShoppingCart color="#000000" size={18} strokeWidth={1.25} className="group-hover:scale-110 duration-150 ease-in-out transition-transform" />
+            <span className="relative">
+              {itemsAmount !== 0 && itemsAmount !== null && (
+                <span className="bg-red-500 absolute -top-2 -right-2 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[7.5px]">{itemsAmount}</span>
+              )}
+              <ShoppingCart color="#000000" size={18} strokeWidth={1.25} className="group-hover:scale-110 duration-150 ease-in-out transition-transform" />
+            </span>
           </button>
         </div>
       </div>

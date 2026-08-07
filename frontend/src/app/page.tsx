@@ -10,6 +10,7 @@ import ProductModal from "@/components/ProductModal";
 import AiSuggestionModal from "@/components/AISuggestionModal";
 import { Plus, RotateCcw, ShoppingCart } from "lucide-react";
 import ShoppingListSidebar from "@/components/ShoppingListSidebar";
+import ImportShoppingListModal from "@/components/ImportModal";
 
 function storeLabel(store: string): string {
   return STORE_LABELS[store] ?? store;
@@ -93,6 +94,7 @@ export default function Home() {
 
   // Shopping list
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [shoppingList, setShoppingList] = useState<Product[]>([]);
 
   // Sidebar filters
@@ -422,6 +424,7 @@ export default function Home() {
         setModalOpen={handleOpen}
         setAiModalOpen={() => setAiModalOpen(true)}
         setShoppingListOpen={() => setShoppingListOpen(!shoppingListOpen)}
+        itemsAmount={shoppingList.length}
       />
       <Modal isOpen={settingsModalOpen} onClose={handleClose} />
       <ProductModal
@@ -440,6 +443,11 @@ export default function Home() {
           onClose={() => setShoppingListOpen(false)}
           products={shoppingList}
           onRemove={removeFromShoppingList}
+          onOpenImport={() => setImportModalOpen(true)}
+        />
+        <ImportShoppingListModal
+          open={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
           allProducts={products}
           onImport={importToShoppingList}
         />
