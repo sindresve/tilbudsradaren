@@ -7,6 +7,7 @@ import { STORE_LABELS } from "@/lib/constants"
 import Navbar from "@/components/Navbar";
 import Modal from "@/components/SettingsModal";
 import ProductModal from "@/components/ProductModal";
+import AiSuggestionModal from "@/components/AISuggestionModal";
 import { RotateCcw } from "lucide-react";
 
 function storeLabel(store: string): string {
@@ -77,6 +78,7 @@ export default function Home() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product>(products[0]);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   
   // Sidebar filters
   const [selectedStores, setSelectedStores] = useState<Set<string>>(new Set());
@@ -345,6 +347,32 @@ export default function Home() {
       setProductModalOpen(false);
     };
 
+  function handleDownloadDealsData() {
+    const exportData = visibleProducts.map((p) => ({
+      butikk: storeLabel(p.store),
+      navn: p.product_name,
+      merke: p.brand,
+      kategori: p.category,
+      pris: p.current_price,
+      for_pris: p.old_price,
+      rabatt_prosent: effectiveDiscount(p),
+      pakningsstorrelse: p.package_size,
+      pris_per_enhet: p.price_per_kg,
+      enhet: p.unit_type,
+    }));
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const { year, week } = selectedWeek ?? getIsoWeek(new Date());
+    a.href = url;
+    a.download = `tilbud-uke-${week}-${year}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const filtersActive =
     minPrice ||
     maxPrice ||
@@ -353,9 +381,14 @@ export default function Home() {
 
   return (
     <main className="h-full flex flex-col bg-[#f6f3ec] text-[#1c1a16]">
-      <Navbar setModalOpen={handleOpen} />
+      <Navbar setModalOpen={handleOpen} setAiModalOpen={() => setAiModalOpen(true)} />
       <Modal isOpen={settingsModalOpen} onClose={handleClose} />
       <ProductModal isOpen={productModalOpen} onClose={handleCloseProductModal} p={selectedProduct} />
+      <AiSuggestionModal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onDownloadData={handleDownloadDealsData}
+      />
       <div className="mx-auto max-w-7xl w-full px-6 py-8 sm:px-10">
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left sidebar */}
