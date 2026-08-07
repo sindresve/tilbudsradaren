@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, ChefHat } from "lucide-react";
+import { Settings, ChefHat, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,10 +8,11 @@ import { usePathname } from "next/navigation";
 interface NavBarProps {
   setModalOpen: () => void;
   setAiModalOpen: () => void;
+  setShoppingListOpen: () => void;
 }
 
 
-export default function Navbar({ setModalOpen, setAiModalOpen }: NavBarProps) {
+export default function Navbar({ setModalOpen, setAiModalOpen, setShoppingListOpen }: NavBarProps) {
   const pathname = usePathname();
 
   return (
@@ -29,8 +30,12 @@ export default function Navbar({ setModalOpen, setAiModalOpen }: NavBarProps) {
             <ChefHat size={16} strokeWidth={1.5} />
             Middagsforslag
           </button>
-          <button onClick={() => setModalOpen()} className="p-1.5">
-            <Settings color="#000000" size={18} strokeWidth={1.25} className="cursor-pointer" />
+          <span className="w-px h-6 bg-stone-500" />
+          <button onClick={() => setModalOpen()} className="p-1.5 cursor-pointer group">
+            <Settings color="#000000" size={18} strokeWidth={1.25} className="group-hover:scale-110 duration-150 ease-in-out transition-transform" />
+          </button>
+          <button onClick={() => setShoppingListOpen()} className="p-1.5 cursor-pointer group">
+            <ShoppingCart color="#000000" size={18} strokeWidth={1.25} className="group-hover:scale-110 duration-150 ease-in-out transition-transform" />
           </button>
         </div>
       </div>

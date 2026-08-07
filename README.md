@@ -7,7 +7,6 @@ En app som skanner ukentlige tilbudsaviser fra lokale dagligvarekjeder og varsle
 - Fin frontend hvor alt er samlet og oversiktlig
 
 ## Planlagt / kommer senere
-- AI-chatbot som leser ukens tilbud, kjenner til dine preferanser og allergier, og foreslår middagsretter basert på det som faktisk er på tilbud
 - Flere varslingskanaler og finpuss av eksisterende funksjoner
 - Skrivebordsvarsel (når nettsiden er åpen eller programmet kjører lokalt)
 - Handleliste (legge til produkter som du tenker å kjøpe som er på tilbud, og sende en oversiktlig liste med butikk og produkt navn på email/discord)
@@ -17,7 +16,6 @@ En app som skanner ukentlige tilbudsaviser fra lokale dagligvarekjeder og varsle
 - Data lagret i lokal SQLite Database
 - AI-modeller:
     - Google Gemini for innhenting av tekst fra bilde/pdf filene (lokale modeller vil bruke ekstremt lang tid + det kan bli mye feil)
-    - Lokal AI modell for AI-chatbot
 - Frontend laget med NextJS, React, Typescript, Tailwindcss
 
 ## Varslinger
