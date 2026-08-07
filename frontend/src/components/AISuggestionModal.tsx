@@ -16,13 +16,24 @@ Still meg først disse spørsmålene, ett om gangen, før du foreslår noe:
 2. Bryr du deg om makronæringsstoffer (f.eks. høyt protein, lavt kalori- eller fettinnhold)?
 3. Hvor mange middager vil du ha forslag til denne uken?
 
-Når jeg har svart, bruk tilbudsdataen i den vedlagte filen til å foreslå middager som utnytter varene som er på tilbud. Ta hensyn til svarene mine på spørsmålene over. Svar på norsk.
+Når jeg har svart, bruk KUN varer som faktisk finnes i tilbudsdataen i den vedlagte filen til å foreslå middager. Ikke inkluder varer, priser eller butikker som ikke står i filen. Ta hensyn til svarene mine på spørsmålene over.
 
-Når jeg har bestemt meg for hvilke middager jeg vil lage, lag en handleliste basert på det jeg trenger å kjøpe. Bruk pris og butikk fra den vedlagte filen der varen finnes i tilbudsdataen. Gi meg handlelisten KUN som rå JSON (ingen forklaringstekst rundt). Feltnavnene skal være på engelsk, men innholdet (verdiene) på norsk, på formen:
+For hvert middagsforslag, oppgi:
+- Navn på retten
+- Kort beskrivelse
+- Omtrentlig næringsinnhold per porsjon (kalorier, protein, fett, karbohydrater) – kun hvis jeg svarte ja på spørsmål 2
+
+Svar på norsk, i vanlig tekst (ikke JSON) i denne fasen.
+
+Når jeg har bestemt meg for hvilke middager jeg vil lage, lag en handleliste basert KUN på varene jeg trenger å kjøpe til akkurat disse rettene. Bruk eksakt pris og butikk fra den vedlagte filen for hver vare. Ikke legg til varer fra en "basislager"-kategori eller andre varer som ikke er tilbudsvarer i filen, med mindre jeg spør om det.
+
+Svar med handlelisten KUN som rå JSON – ingen forklaringstekst, ingen markdown-kodeblokk, ingen tekst før eller etter. Feltnavnene skal være på engelsk, verdiene på norsk. "amount" skal alltid være et tall (ikke tekst som "1 pk"), og "unit" skal beskrive enheten separat (f.eks. "pk", "kg", "stk"). Bruk nøyaktig dette formatet:
 
 [
   { "product": "string", "amount": number, "unit": "string", "price": number, "store": "string" }
-]`;
+]
+
+Hvis en vare mangler pris eller butikk i den vedlagte filen, hopp over den varen helt i stedet for å gjette.`;
 
 const AI_SITES = [
     { name: "Gemini", url: "https://gemini.google.com" },

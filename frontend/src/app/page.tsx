@@ -188,6 +188,14 @@ export default function Home() {
     setShoppingList((prev) => prev.filter((p) => p.id !== id));
   }
 
+  function importToShoppingList(matched: Product[]) {
+    setShoppingList((prev) => {
+      const existingIds = new Set(prev.map((p) => p.id));
+      const newOnes = matched.filter((p) => !existingIds.has(p.id));
+      return [...prev, ...newOnes];
+    });
+  }
+
   function toggleStore(store: string) {
     setSelectedStores((prev) => {
       const next = new Set(prev);
@@ -432,6 +440,8 @@ export default function Home() {
           onClose={() => setShoppingListOpen(false)}
           products={shoppingList}
           onRemove={removeFromShoppingList}
+          allProducts={products}
+          onImport={importToShoppingList}
         />
 
         <div className="mx-auto max-w-7xl w-full">
