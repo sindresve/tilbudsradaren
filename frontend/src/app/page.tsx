@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getProducts, getStores, getCatalogs } from "@/lib/api";
-import { Product, StoreToggle, Catalog } from "../types";
+import { Product, StoreToggle, Catalog } from "@/types";
 import { STORE_LABELS } from "@/lib/constants"
 import Navbar from "@/components/Navbar";
 import Modal from "@/components/SettingsModal";
@@ -20,7 +20,9 @@ function formatPrice(value: number | null): string {
 }
 
 function effectiveDiscount(p: Product): number | null {
-  if (p.discount_percent !== null) return Math.round(p.discount_percent);
+  if (p.discount_percent !== null && p.discount_percent !== 0) {
+    return Math.round(p.discount_percent);
+  }
   return discountPercent(p.current_price, p.old_price);
 }
 

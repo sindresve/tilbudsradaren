@@ -1,0 +1,304 @@
+{
+  "recipes": [
+    {
+      "name": "Butter Chicken",
+      "proteins": ["kylling"],
+      "required": ["kylling"],
+      "optional": ["ris", "fløte", "karri", "ingefær", "hvitløk", "løk"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 35,
+      "tags": ["indisk", "gryte"]
+    },
+    {
+      "name": "Kremet laksepasta",
+      "proteins": ["laks"],
+      "required": ["laks", "pasta"],
+      "optional": ["fløte", "hvitløk", "sitron", "parmesan", "spinat"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 25,
+      "tags": ["italiensk", "pasta"]
+    },
+    {
+      "name": "Taco med kjøttdeig",
+      "proteins": ["kjøttdeig"],
+      "required": ["kjøttdeig", "tortilla"],
+      "optional": ["tomat", "løk", "ost", "rømme", "salat", "mais"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 20,
+      "tags": ["meksikansk", "tex-mex"]
+    },
+    {
+      "name": "Ovnsbakt laks med poteter",
+      "proteins": ["laks"],
+      "required": ["laks", "poteter"],
+      "optional": ["smør", "dill", "sitron"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 30,
+      "tags": ["norsk", "ovn"]
+    },
+    {
+      "name": "Spaghetti Bolognese",
+      "proteins": ["kjøttdeig"],
+      "required": ["kjøttdeig", "pasta"],
+      "optional": ["tomat", "løk", "hvitløk", "gulrøtter", "selleri", "parmesan"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 40,
+      "tags": ["italiensk", "pasta"]
+    },
+    {
+      "name": "Kyllinggryte med ris",
+      "proteins": ["kylling"],
+      "required": ["kylling", "ris"],
+      "optional": ["fløte", "sopp", "løk", "hvitløk", "paprika"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 40,
+      "tags": ["norsk", "gryte"]
+    },
+    {
+      "name": "Pølsegrateng",
+      "proteins": ["pølser"],
+      "required": ["pølser", "poteter"],
+      "optional": ["ost", "fløte", "løk"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 35,
+      "tags": ["norsk", "grateng"]
+    },
+    {
+      "name": "Vegetartaco",
+      "proteins": ["bønner", "kikerter"],
+      "required": ["tortilla"],
+      "optional": ["bønner", "mais", "tomat", "salat", "rømme", "ost"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 15,
+      "tags": ["vegetar", "tex-mex"]
+    },
+    {
+      "name": "Lammegryte med poteter",
+      "proteins": ["lammekjøtt"],
+      "required": ["lammekjøtt", "poteter"],
+      "optional": ["gulrøtter", "løk", "hvitløk", "rosmarin"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 90,
+      "tags": ["norsk", "gryte"]
+    },
+    {
+      "name": "Svinefilet med peppersaus",
+      "proteins": ["svinekjøtt"],
+      "required": ["svinekjøtt"],
+      "optional": ["fløte", "pepper", "poteter", "bacon"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 35,
+      "tags": ["norsk", "filet"]
+    },
+    {
+      "name": "Scampi hvitløkssmør",
+      "proteins": ["scampi", "reker"],
+      "required": ["scampi"],
+      "optional": ["hvitløk", "smør", "sitron", "pasta", "persille"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 15,
+      "tags": ["italiensk", "sjømat"]
+    },
+    {
+      "name": "Torsk med bacon og purre",
+      "proteins": ["torsk"],
+      "required": ["torsk", "bacon"],
+      "optional": ["purre", "gulrøtter", "smør", "sitron"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 25,
+      "tags": ["norsk", "fisk"]
+    },
+    {
+      "name": "Linsegryte",
+      "proteins": ["linser"],
+      "required": ["linser"],
+      "optional": ["gulrøtter", "løk", "selleri", "hvitløk", "karri", "kokosmelk"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 40,
+      "tags": ["vegetar", "gryte"]
+    },
+    {
+      "name": "Kylling tikka masala",
+      "proteins": ["kylling"],
+      "required": ["kylling"],
+      "optional": ["ris", "fløte", "karri", "tomat", "ingefær", "hvitløk"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 35,
+      "tags": ["indisk", "gryte"]
+    },
+    {
+      "name": "Falafel i pita",
+      "proteins": ["kikerter"],
+      "required": ["kikerter", "pitabrød"],
+      "optional": ["salat", "tomat", "agurk", "tahini"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 30,
+      "tags": ["vegetar", "midtausten"]
+    },
+    {
+      "name": "Kjøttkaker i brun saus",
+      "proteins": ["kjøttdeig"],
+      "required": ["kjøttdeig", "poteter"],
+      "optional": ["løk", "fløte", "brun saus", "ertestuing"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 45,
+      "tags": ["norsk", "husmannskost"]
+    },
+    {
+      "name": "Biff stroganoff",
+      "proteins": ["biff", "kjøtt"],
+      "required": ["biff"],
+      "optional": ["sopp", "løk", "rømme", "fløte", "ris", "pasta"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 30,
+      "tags": ["russisk", "gryte"]
+    },
+    {
+      "name": "Chili con carne",
+      "proteins": ["kjøttdeig"],
+      "required": ["kjøttdeig", "bønner"],
+      "optional": ["tomat", "løk", "hvitløk", "chili", "ris"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 45,
+      "tags": ["tex-mex", "gryte"]
+    },
+    {
+      "name": "Pasta pesto med kylling",
+      "proteins": ["kylling"],
+      "required": ["kylling", "pasta"],
+      "optional": ["pesto", "parmesan", "cherrytomat"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 20,
+      "tags": ["italiensk", "pasta"]
+    },
+    {
+      "name": "Fiskesuppe",
+      "proteins": ["fisk", "laks", "torsk"],
+      "required": ["fisk"],
+      "optional": ["reker", "blåskjell", "gulrøtter", "purre", "fløte", "poteter"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 35,
+      "tags": ["norsk", "suppe"]
+    },
+    {
+      "name": "Kyllingwok",
+      "proteins": ["kylling"],
+      "required": ["kylling"],
+      "optional": ["wokblanding", "soyasaus", "ingefær", "ris", "nudler"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 20,
+      "tags": ["asiatisk", "wok"]
+    },
+    {
+      "name": "Laks i form med fløtesaus",
+      "proteins": ["laks"],
+      "required": ["laks"],
+      "optional": ["fløte", "brokkoli", "poteter", "sitron"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 30,
+      "tags": ["norsk", "ovn"]
+    },
+    {
+      "name": "Kjøttdeig- og potetgrateng",
+      "proteins": ["kjøttdeig"],
+      "required": ["kjøttdeig", "poteter"],
+      "optional": ["løk", "ost", "fløte"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 45,
+      "tags": ["norsk", "grateng"]
+    },
+    {
+      "name": "Svin indrefilet med fløtesaus",
+      "proteins": ["svinekjøtt"],
+      "required": ["svinekjøtt", "fløte"],
+      "optional": ["sopp", "poteter", "brokkoli"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 35,
+      "tags": ["norsk", "filet"]
+    },
+    {
+      "name": "Biffburger",
+      "proteins": ["biff", "kjøtt"],
+      "required": ["kjøttdeig", "burgerbrød"],
+      "optional": ["ost", "bacon", "salat", "tomat", "løk"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 20,
+      "tags": ["amerikansk", "burger"]
+    },
+    {
+      "name": "Grønnsakswok med tofu",
+      "proteins": ["tofu"],
+      "required": ["tofu", "wokblanding"],
+      "optional": ["soyasaus", "ingefær", "ris", "nudler"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 15,
+      "tags": ["vegetar", "wok"]
+    },
+    {
+      "name": "Kylling- og soppsuppe",
+      "proteins": ["kylling"],
+      "required": ["kylling"],
+      "optional": ["sopp", "fløte", "gulrøtter", "purre"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 30,
+      "tags": ["suppe"]
+    },
+    {
+      "name": "Torskefilet med sandefjordsmør",
+      "proteins": ["torsk"],
+      "required": ["torsk"],
+      "optional": ["smør", "sitron", "poteter", "gulrøtter", "purre"],
+      "category": "middag",
+      "difficulty": 2,
+      "time": 20,
+      "tags": ["norsk", "fisk"]
+    },
+    {
+      "name": "Kylling tacos",
+      "proteins": ["kylling"],
+      "required": ["kylling", "tortilla"],
+      "optional": ["tomat", "salat", "rømme", "ost", "mais"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 20,
+      "tags": ["meksikansk"]
+    },
+    {
+      "name": "Ovnsbakte kyllinglår med rotgrønnsaker",
+      "proteins": ["kylling"],
+      "required": ["kyllinglår"],
+      "optional": ["gulrøtter", "poteter", "løk", "hvitløk"],
+      "category": "middag",
+      "difficulty": 1,
+      "time": 50,
+      "tags": ["norsk", "ovn"]
+    }
+  ]
+}
