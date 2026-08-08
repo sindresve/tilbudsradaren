@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getProducts, getStores, getCatalogs } from "@/lib/api";
 import { Product, StoreToggle, Catalog } from "@/types";
 import { STORE_LABELS } from "@/lib/constants";
@@ -116,6 +116,21 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchSchedulerStatus = useCallback(async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/scheduler/status");
+      const data = await res.json();
+      setIsRunning(data.running);
+      setNextScan(data.next_run ? new Date(data.next_run) : null);
+    } catch {
+      // server not reachable — leave last known state
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSchedulerStatus();
+  }, [fetchSchedulerStatus]);
+
   useEffect(() => {
     if (!isRunning || !nextScan) {
       setTimeUntilScan("--:--:--");
@@ -126,6 +141,7 @@ export default function Home() {
       const diff = nextScan.getTime() - Date.now();
       if (diff <= 0) {
         setTimeUntilScan("00:00:00");
+        fetchSchedulerStatus(); // refresh once the countdown hits zero
         return;
       }
       const h = Math.floor(diff / 3_600_000);
@@ -139,16 +155,20 @@ export default function Home() {
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [isRunning, nextScan]);
+  }, [isRunning, nextScan, fetchSchedulerStatus]);
 
-  function handleToggleRunning() {
-    if (isRunning) {
-      setIsRunning(false);
-      setNextScan(null);
-      return;
+  async function handleToggleRunning() {
+    const endpoint = isRunning ? "stop" : "start";
+    try {
+      const res = await fetch(`http://localhost:8000/api/scheduler/${endpoint}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      setIsRunning(data.running);
+      setNextScan(data.next_run ? new Date(data.next_run) : null);
+    } catch {
+      // optionally show a toast/error here
     }
-    setIsRunning(true);
-    setNextScan(getNextMondayAt8());
   }
 
   useEffect(() => {

@@ -61,7 +61,7 @@ def get_scan_settings(conn):
     return enabled_stores, postal_code
 
 
-def main():
+def scan():
     init_db()
     info = get_current_datetime()
 
@@ -82,7 +82,3 @@ def main():
 
     monitor = ProductMonitor()
     monitor.run()
-    
-
-if __name__=="__main__":
-    main()
