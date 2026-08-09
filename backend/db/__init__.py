@@ -26,6 +26,8 @@ def init_db():
         year INTEGER NOT NULL,
         week INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        store_name  TEXT,
+        maps_url  TEXT,
     )
     """)
 

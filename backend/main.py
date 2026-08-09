@@ -3,7 +3,7 @@ from pathlib import Path
 
 from tilbud_scraper import process_catalog
 from utils import (get_pos, get_current_datetime, save_catalog)
-from stores import get_url
+from stores import get_url, get_address
 from db import init_db, KNOWN_STORES
 from db.database import get_connection
 from api.utils.gemini_key import get_gemini_api_key
@@ -11,25 +11,29 @@ from api.utils.product_monitor import ProductMonitor
 
 
 class TilbudsRadaren:
-    def __init__(self, stores, postalcode, info):
+    def __init__(self, stores, postal_code, info):
         self.stores = stores
-        self.pos = get_pos()
-        self.postalcode = postalcode
+        self.pos = get_pos(postal_code)
+        self.postal_code = postal_code
         self.info = info
+        self.store_info = []
 
     def run(self):
         gemini_api_key = get_gemini_api_key()
         if gemini_api_key is None:
             raise RuntimeError("Ingen Gemini API nøkkel funnet, sett nøkkelen i innstillinger først")
-        self.scan_stores(self.postalcode)
+        self.scan_stores(self.postal_code)
+        return self.store_info
 
-    def scan_stores(self, postalcode):
+    def scan_stores(self, postal_code):
         print(f"Scanner {len(self.stores)} butikker")
 
         for store in self.stores:
             print( f"Scanner {store}")
 
-            content = get_url(store,postalcode,self.pos)
+            content = get_url(store,postal_code,self.pos)
+            info = get_address(store, postal_code, self.pos)
+            self.store_info.append(info)
             save_catalog(content, KNOWN_STORES[store], store, self.info)
 
 
@@ -75,9 +79,9 @@ def scan():
         raise RuntimeError("Ingen postnummer satt i innstillinger")
 
     radar = TilbudsRadaren(enabled_stores, postal_code, info)
-    radar.run()
+    store_info = radar.run()
 
-    process_catalog(info=info)
+    process_catalog(info=info, stores_info=store_info)
     cleanup_data_dir()
 
     monitor = ProductMonitor()

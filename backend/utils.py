@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+import pgeocode
+import math
 import requests
 
 DATA_FOLDER = Path("data")
@@ -10,14 +12,15 @@ class Pos:
     lat: float
     lon: float
 
-# Få nåværende posisjon for å finne nærmeste butikk
-def get_pos() -> Pos:
-    response = requests.get("https://ipinfo.io/json")
-    response.raise_for_status()
-    data = response.json()
+_nomi = pgeocode.Nominatim("no")  # initialiseres én gang, gjenbrukes
 
-    lat_str, lon_str = data["loc"].split(",")
-    return Pos(lat=float(lat_str), lon=float(lon_str))
+def get_pos(postal_code) -> Pos:
+    result = _nomi.query_postal_code(postal_code)
+
+    if math.isnan(result.latitude) or math.isnan(result.longitude):
+        raise ValueError(f"Ukjent postnummer: {postal_code!r}")
+
+    return Pos(lat=result.latitude, lon=result.longitude)
 
 def get_current_datetime():
     now = datetime.now()

@@ -1,13 +1,13 @@
 import requests
 
-from stores.coop import get_coop_url
-from stores.kiwi import get_kiwi_url
-from stores.rema import get_rema_url
-from stores.europris import get_europris_url
-from stores.joker import get_joker_url
-from stores.spar import get_spar_url
-from stores.bunnpris import get_bunnpris_url
-from stores.meny import get_meny_url
+from stores.coop import get_coop_url, get_coop_address
+from stores.kiwi import get_kiwi_url, get_kiwi_address
+from stores.rema import get_rema_url, get_rema_address
+from stores.europris import get_europris_url, get_europris_address
+from stores.joker import get_joker_url, get_joker_address
+from stores.spar import get_spar_url, get_spar_address
+from stores.bunnpris import get_bunnpris_url, get_bunnpris_address
+from stores.meny import get_meny_url, get_meny_address
 
 def get_coop_id(postalcode, pos, chain):
     url = "https://www.coop.no/api/client/stores/search"
@@ -29,6 +29,26 @@ coop_chains = {
     "coopPrix": "prix",
     "coopMega": "mega",
 }
+
+def get_address(store, postalcode, pos):
+    if store in coop_chains:
+        return get_coop_address(store, coop_chains[store], postalcode)
+    elif store == "kiwi":
+        return get_kiwi_address(store, pos)
+    elif store == "joker":
+        return get_joker_address(store, pos)
+    elif store == "bunnpris":
+        return get_bunnpris_address(store, pos)
+    elif store == "rema":
+        return get_rema_address(store, pos)
+    elif store == "meny":
+        return get_meny_address(store, pos)
+    elif store == "europris":
+        return get_europris_address(store, pos)
+    elif store == "spar":
+        return get_spar_address(store, pos)
+    else:
+        raise ValueError(f"Ukjent butikk: {store}")
 
 def get_url(store, postalcode, pos):
     if store in coop_chains:

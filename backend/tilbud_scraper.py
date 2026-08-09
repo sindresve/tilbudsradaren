@@ -273,9 +273,7 @@ def pdf_to_json(pdf_path: str, api_key: Optional[str] = None, model: str = "gemi
     return result
 
 
-
-
-def process_catalog(data_dir="data", info=None):
+def process_catalog(data_dir="data", info=None, stores_info=None):
     base = Path(data_dir)
     all_products = []
 
@@ -304,7 +302,8 @@ def process_catalog(data_dir="data", info=None):
         else:
             continue
 
-        catalog_id = create_catalog(store, info)
+        store_info = next((item for item in stores_info if item["store"] == store), None)
+        catalog_id = create_catalog(store, info, store_info)
         save_products(products, catalog_id)
         all_products.extend(products)
 

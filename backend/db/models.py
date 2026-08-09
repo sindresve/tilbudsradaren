@@ -1,6 +1,6 @@
 from db.database import get_connection
 
-def create_catalog(store, info):
+def create_catalog(store, info, store_info):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -8,15 +8,19 @@ def create_catalog(store, info):
     INSERT INTO catalogs(
         store,
         year,
-        week
+        week,
+        store_name,
+        maps_url
     )
 
-    VALUES (?, ?, ?)
+    VALUES (?, ?, ?, ?, ?)
     """, 
     (
         store, 
         info["year"], 
-        info["week"])
+        info["week"],
+        store_info["store_name"],
+        store_info["maps_url"])
     )
 
 
