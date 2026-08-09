@@ -15,7 +15,6 @@ def get_catalogs(
     week: Optional[int] = None,
     conn=Depends(get_db),
 ):
-    """Return catalog metadata (useful for a week/store picker in the frontend)."""
     cursor = conn.cursor()
 
     filters = []

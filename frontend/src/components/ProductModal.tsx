@@ -1,8 +1,8 @@
 'use client';
 
-import { X, Package, Tag, Store } from "lucide-react";
+import { X, Package, Tag, Store, MapPin } from "lucide-react";
 import { STORE_LABELS } from "@/lib/constants";
-import { Product } from "@/types";
+import { Product, Catalog } from "@/types";
 
 function storeLabel(store: string): string {
   return STORE_LABELS[store] ?? store;
@@ -23,12 +23,17 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   p: Product;
+  catalog?: Catalog | null;
 }
 
-export default function ProductModal({ isOpen, onClose, p }: ModalProps) {
+export default function ProductModal({ isOpen, onClose, p, catalog }: ModalProps) {
   if (!isOpen || !p) return null;
 
   const pct = effectiveDiscount(p);
+  const storeName = catalog?.store_name ?? storeLabel(p.store);
+  const mapsUrl =
+    catalog?.maps_url ??
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(storeName)}`;
 
   return (
     <div
@@ -92,6 +97,28 @@ export default function ProductModal({ isOpen, onClose, p }: ModalProps) {
               <Info title="Kategori" value={p.category ?? "Ukjent"} icon={<Tag size={15} />} />
               <Info title="Pakning" value={p.package_size ?? "Ukjent"} />
               <Info title="Pris per enhet" value={p.price_per_kg ? `${p.price_per_kg} kr/${p.unit_type ?? "kg"}` : "Ikke oppgitt"} />
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-3 rounded-lg border border-[#1c1a16]/10 bg-white p-4">
+              <div className="min-w-0">
+                <div className="mb-1 flex items-center gap-1.5 text-[#1c1a16]/40">
+                  <MapPin size={15} />
+                  <span className="text-xs">Butikk</span>
+                </div>
+                <div className="truncate text-sm font-semibold text-[#1c1a16]">
+                  {storeName}
+                </div>
+              </div>
+
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#1c1a16]/10 bg-[#1c1a16] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1c1a16]/90"
+              >
+                <MapPin size={14} />
+                Åpne i Google Maps
+              </a>
             </div>
           </div>
         </div>

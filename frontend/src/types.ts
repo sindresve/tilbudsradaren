@@ -32,4 +32,6 @@ export interface Catalog {
   year: number;
   week: number;
   created_at: string;
+  store_name: string;
+  maps_url: string;
 }

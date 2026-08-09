@@ -123,7 +123,6 @@ export default function Home() {
       setIsRunning(data.running);
       setNextScan(data.next_run ? new Date(data.next_run) : null);
     } catch {
-      // server not reachable — leave last known state
     }
   }, []);
 
@@ -167,7 +166,6 @@ export default function Home() {
       setIsRunning(data.running);
       setNextScan(data.next_run ? new Date(data.next_run) : null);
     } catch {
-      // optionally show a toast/error here
     }
   }
 
@@ -196,6 +194,10 @@ export default function Home() {
       .then(setAvailableWeeks)
       .catch(() => {});
   }, []);
+
+   useEffect(() => {
+    console.log(availableWeeks)
+  }, [availableWeeks]);
 
   function addToShoppingList(product: Product) {
     setShoppingList((prev) => {
@@ -434,6 +436,15 @@ export default function Home() {
     selectedCategories.size !== categories.length ||
     selectedStores.size !== stores.filter((s) => s.enabled).length;
 
+  const selectedCatalog = selectedProduct
+    ? availableWeeks.find(
+        (c) =>
+          c.store === selectedProduct.store &&
+          c.year === selectedProduct.year &&
+          c.week === selectedProduct.week
+      ) ?? null
+    : null;
+
   return (
     <main
       className={`h-full flex flex-col bg-[#f6f3ec] text-[#1c1a16] transition-all duration-300 ${
@@ -451,6 +462,7 @@ export default function Home() {
         isOpen={productModalOpen}
         onClose={handleCloseProductModal}
         p={selectedProduct!}
+        catalog={selectedCatalog}
       />
       <AiSuggestionModal
         isOpen={aiModalOpen}
