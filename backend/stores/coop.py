@@ -17,7 +17,7 @@ def get_coop_address(store_name, chain, postalcode):
     
     destinasjon = urllib.parse.quote(adresse_str)
     
-    url = f"https://www.google.com/maps/dir/?api=1&destination={destinasjon}&travelmode=driving"
+    url = f"https://www.google.com/maps/dir/?api=1&destination={destinasjon}&travelmode=walking"
 
     return {"store": store_name, "name": name, "maps_url": url}
 

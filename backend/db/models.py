@@ -19,7 +19,7 @@ def create_catalog(store, info, store_info):
         store, 
         info["year"], 
         info["week"],
-        store_info["store_name"],
+        store_info["store"],
         store_info["maps_url"])
     )
 

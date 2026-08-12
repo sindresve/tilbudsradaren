@@ -51,7 +51,7 @@ def get_joker_address(store_name, pos):
 
     destinasjon = urllib.parse.quote(adresse_str)
 
-    maps_url = f"https://www.google.com/maps/dir/?api=1&destination={destinasjon}&travelmode=driving"
+    maps_url = f"https://www.google.com/maps/dir/?api=1&destination={destinasjon}&travelmode=walking"
 
     return {"store": store_name, "name": closest_store['storeName'], "maps_url": maps_url}
 
